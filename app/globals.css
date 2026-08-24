@@ -1,0 +1,180 @@
+@import "tailwindcss";
+
+/* Dark-only. There is no light palette and no theme switching — these are the
+   single source of truth for every surface colour. */
+:root {
+  color-scheme: dark;
+
+  --background: #08090b;
+  --foreground: #edeef0;
+  --muted: #9ca3af;
+  --muted-2: #8b919b;
+  --border: #1f2228;
+  --surface: #101114;
+  --surface-2: #16171b;
+  --accent: #5b8def;
+  --accent-soft: #12203f;
+  --editor-bg: #0a0b0d;
+  --editor-chrome: #131418;
+
+  /* Scrollbar. --border is only 1.6:1 against the page and reads as invisible,
+     so the resting thumb sits a step brighter than any structural border. */
+  --scrollbar-thumb: #363d4b;
+  --scrollbar-thumb-hover: #8b919b;
+  --scrollbar-thumb-active: #9ca3af;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-editor-bg: var(--editor-bg);
+  --color-editor-chrome: var(--editor-chrome);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-pixel: var(--font-pixel-src), "Courier New", monospace;
+
+  /* type scale — one ladder, no arbitrary px values in components */
+  --text-2xs: 0.75rem; /* 12px — chips, badges */
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.8125rem; /* 13px — meta, labels, periods */
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.9375rem; /* 15px — card body, nav, buttons */
+  --text-sm--line-height: 1.6;
+  --text-base: 1.0625rem; /* 17px — lead paragraphs */
+  --text-base--line-height: 1.7;
+  --text-lg: 1.1875rem; /* 19px — card headings */
+  --text-lg--line-height: 1.4;
+  --text-code: 0.875rem; /* 14px — code editor */
+  --text-code--line-height: 1.65;
+}
+
+* {
+  border-color: var(--border);
+}
+
+/* Lenis owns scrolling; native smooth behaviour would fight it. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* anchor targets must clear the 3.5rem fixed header */
+section[id] {
+  scroll-margin-top: 3.5rem;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* ---------------------------------------------------------------------------
+   Scrollbars
+
+   The default bar is a bright chrome strip that fights a near-black page, so it
+   is restyled everywhere rather than only inside the code editor. Two engines
+   need different syntax: Firefox takes the standard `scrollbar-*` properties,
+   Chromium and Safari take the ::-webkit pseudo-elements.
+
+   The thumb uses a transparent border plus background-clip: padding-box, which
+   insets it without hard-coding a surrounding colour — so the same rule reads
+   correctly on the page background, the menu panel, and the editor chrome.
+
+   It is restyled, not hidden: the bar is the only indication of how far through
+   a 6500px page you are.
+--------------------------------------------------------------------------- */
+
+/* Firefox */
+html {
+  /* reserve the gutter so content never reflows when the bar appears */
+  scrollbar-gutter: stable;
+}
+
+/* Firefox only.
+   Chromium drops every ::-webkit-scrollbar rule for an element as soon as ANY
+   standard scrollbar-* appearance property is set on it — so the two syntaxes
+   cannot both be declared globally. Gating on selector support keeps the
+   rounded inset thumb in Chromium and still colours the bar in Firefox. */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+}
+
+/* Chromium, Safari */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Compact variant for small scrollers nested inside components. */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+@keyframes blink-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+.caret-blink {
+  animation: blink-caret 1s step-end infinite;
+}
