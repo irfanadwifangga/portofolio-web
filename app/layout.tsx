@@ -5,12 +5,8 @@ import { SmoothScroll } from "@/components/smooth-scroll";
 import { SparkLayer } from "@/components/spark-layer";
 import { SectionRail } from "@/components/section-rail";
 import { ToastProvider } from "@/components/toast";
-import {
-  SITE_URL,
-  SITE_NAME,
-  SITE_TITLE,
-  SITE_DESCRIPTION,
-} from "@/lib/site";
+import { Analytics } from "@vercel/analytics/next";
+import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/site";
 // Latin subset only. The unscoped entry point declares @font-face for
 // cyrillic, cyrillic-ext, greek, latin-ext and vietnamese as well — 42 font
 // files in the build output for a site whose copy is entirely Latin. Those
@@ -26,7 +22,7 @@ const pixel = Press_Start_2P({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-pixel-src",
-  display: "swap",
+  display: "swap"
 });
 
 export const metadata: Metadata = {
@@ -45,12 +41,12 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    locale: "en_US",
+    locale: "en_US"
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
+    description: SITE_DESCRIPTION
   },
   robots: {
     index: true,
@@ -59,22 +55,20 @@ export const metadata: Metadata = {
       index: true,
       follow: true,
       "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
+      "max-snippet": -1
+    }
+  }
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${GeistSans.variable} ${pixel.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${GeistSans.variable} ${pixel.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-accent selection:text-white">
         <SmoothScroll />
         <ToastProvider>
           <SparkLayer>
             <SectionRail />
+            <Analytics />
             {children}
           </SparkLayer>
         </ToastProvider>
