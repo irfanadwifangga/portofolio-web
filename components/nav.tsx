@@ -18,6 +18,7 @@ const MENU_ITEMS: StaggeredMenuItem[] = [
     ariaLabel: "Engineering deep-dives",
     link: "#deep-dives"
   },
+  { label: "Side project", ariaLabel: "Side project", link: "#side-project" },
   { label: "Stack", ariaLabel: "Tech stack", link: "#stack" },
   { label: "Experience", ariaLabel: "Work experience", link: "#experience" },
   { label: "Contact", ariaLabel: "Get in touch", link: "#contact" }

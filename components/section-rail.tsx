@@ -4,12 +4,21 @@ import LineSidebar from "@/components/line-sidebar";
 import { scrollToSection } from "@/lib/scroll-to";
 import { useActiveSection } from "@/lib/use-active-section";
 
-const HASHES = ["#top", "#building", "#deep-dives", "#stack", "#experience", "#contact"];
+const HASHES = [
+  "#top",
+  "#building",
+  "#deep-dives",
+  "#side-project",
+  "#stack",
+  "#experience",
+  "#contact"
+];
 
 const SECTIONS = [
   { label: "Home", href: "#top" },
   { label: "Building", href: "#building" },
   { label: "Deep-dives", href: "#deep-dives" },
+  { label: "Side project", href: "#side-project" },
   { label: "Stack", href: "#stack" },
   { label: "Experience", href: "#experience" },
   { label: "Contact", href: "#contact" }
@@ -23,7 +32,7 @@ const SECTIONS = [
  * max-w-6xl content column. At the 2xl breakpoint (1536px) that margin is only
  * 9px. Below the gate the viewport margin outside the
  * max-w-6xl content column is too narrow and the rail would collide with the
- * copy. The top nav carries the same five destinations at every width, so
+ * copy. The top nav carries the same destinations at every width, so
  * The active entry follows scroll position via useActiveSection, passed in
  * as a controlled prop.
  *

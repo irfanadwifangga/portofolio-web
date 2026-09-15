@@ -14,6 +14,9 @@ CSS v4.
   a detail panel beside it that always describes whichever card is in front.
 - **System deep-dives** — short technical case studies from real work (Seria,
   RSTPOS, GM Workspace), not screenshots.
+- **Side project** — yt-to-mp3, a local desktop app in Go and React, with its own
+  three case studies (process-tree cancellation, SSE resume, retry policy) and
+  figures counted from its repository.
 - **Tech stack** — two counter-rotating elliptical orbits of brand marks, with a
   grouped text list underneath as the scannable version.
 - **Contact** — a compose form that delivers to the inbox through a server
@@ -90,6 +93,8 @@ real bugs.
 | --- | --- |
 | Domain, name, tagline, description | `lib/site.ts` |
 | Project cards & case studies | `lib/content.ts` |
+| Side project, its figures & case studies | `lib/content.ts` (`sideProject`) |
+| Side project screenshot (optional) | `public/project/yt-to-mp3.png` |
 | Tech stack groups | `lib/tech-stack.tsx` |
 | Per-project tech marks | `lib/tech-icons.tsx` |
 | Hero code-editor snippets | `lib/code-snippets.ts` |

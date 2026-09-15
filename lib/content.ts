@@ -193,3 +193,87 @@ export const experience: ExperienceEntry[] = [
     ]
   }
 ];
+
+export interface SideProjectFact {
+  value: string;
+  label: string;
+}
+
+export interface SideProject {
+  name: string;
+  /** Screenshot in public/project. Optional: the section lays out without it. */
+  image: string;
+  repo: string;
+  period: string;
+  tagline: string;
+  summary: string;
+  highlights: string[];
+  /**
+   * Counted from the repository, not estimated. Re-count when the project
+   * moves on, or these quietly become claims that are no longer true.
+   * Last counted 2026-09-15.
+   */
+  facts: SideProjectFact[];
+  stack: string[];
+  dives: DeepDive[];
+}
+
+export const sideProject: SideProject = {
+  name: "YT To MP3 Converter",
+  image: "/project/yt-to-mp3.png",
+  repo: "https://github.com/irfanadwifangga/yt-to-mp3",
+  period: "Sep 2026",
+  tagline: "Local desktop app · Go + React",
+  summary:
+    "Paste a video link and get an MP3 with title, artist, cover art and album tags already filled in — entirely on your own machine, with no account and nothing uploaded. A Go backend keeps a persistent job queue in SQLite, drives yt-dlp and FFmpeg as child processes, and streams live progress to a React UI over Server-Sent Events. It builds into a single pure-Go binary and a Windows installer.",
+  highlights: [
+    "Layered design with one-way imports: the domain knows nothing about HTTP, SQL or child processes, and every adapter is wired in main alone",
+    "A finished file only appears by atomic rename from temp, after its name is claimed through an O_EXCL reservation, so two workers can never write the same path",
+    "On startup, crash recovery marks interrupted jobs failed, collects orphaned temp files and reconciles the history with what is actually on disk"
+  ],
+  facts: [
+    { value: "215", label: "Go test functions" },
+    { value: "3", label: "OSes tested in CI" },
+    { value: "5", label: "cross-compiled targets" },
+    { value: "0", label: "cgo dependencies" }
+  ],
+  stack: ["Go", "React", "TypeScript", "SQLite", "FFmpeg", "yt-dlp", "Vite", "GitHub Actions"],
+  dives: [
+    {
+      title: "Cancel that kills the whole process tree",
+      project: "yt-to-mp3",
+      problem:
+        "yt-dlp spawns FFmpeg, and on Windows killing a process does not kill its children. A naive cancel leaves an orphaned FFmpeg still writing, and a temp file the OS refuses to delete because something still holds it open.",
+      approach: [
+        "Every child is adopted into a Windows Job Object with KILL_ON_JOB_CLOSE, so closing one handle ends the entire tree, grandchildren included",
+        "Cancel sends a soft CTRL_BREAK first and closes the job after a grace period; Unix process groups get the same two-step treatment",
+        "Temp files are removed only after the process has actually exited, and CI proves tree termination on Windows, macOS and Linux"
+      ],
+      stack: ["Go", "FFmpeg", "yt-dlp"]
+    },
+    {
+      title: "Live progress that survives a reconnect",
+      project: "yt-to-mp3",
+      problem:
+        "The UI follows each job over Server-Sent Events. Reading stored history and then subscribing leaves a gap: any event fired between the two steps is lost for good, and a reconnecting tab can miss the one state change that mattered.",
+      approach: [
+        "Subscribe to the live stream first, then read persisted history, and drop live events whose sequence number the history already delivered",
+        "Only state, error and done are persisted and replayable; progress is lossy, throttled to four updates a second, and a reconnect gets one fresh snapshot instead of stale frames",
+        "A slow subscriber may lose progress frames but never a state change: if one would block, that connection is closed rather than stalling the publisher"
+      ],
+      stack: ["Go", "React", "TypeScript", "SQLite"]
+    },
+    {
+      title: "Retries that know when to give up",
+      project: "yt-to-mp3",
+      problem:
+        "A download can fail because the network blinked, because the source rate-limited the machine, or because the video is private. Retrying all three the same way either gives up too early or hammers a source that has already said no.",
+      approach: [
+        "Every failure is classified as transient, throttled, tool outdated, permanent or local, and only transient and throttled failures retry automatically, at most three times",
+        "Throttled retries back off from 30 seconds to 5 minutes with ±20% jitter, so jobs limited together do not all return at once and trigger the next limit",
+        "After an HTTP 429 the scheduler runs one job at a time for a five-minute cooldown, because parallel downloads only extend the throttling"
+      ],
+      stack: ["Go", "SQLite"]
+    }
+  ]
+};

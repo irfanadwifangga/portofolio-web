@@ -18,9 +18,34 @@ import {
   Heroui,
   TailwindCss,
   ShadcnUi,
+  Go,
+  React as ReactIcon,
+  Sqlite,
+  Ffmpeg,
+  Vite,
+  GithubActions,
 } from "@thesvg/react";
+import { YtDlpMark } from "@/lib/yt-dlp-mark";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
+
+/**
+ * Vite in its single-colour variant. The default mark draws one of its paths
+ * in #000 and the wordmark sets its lettering in #08060d, so both lose part
+ * of the logo into the dark page; the mono variant inherits currentColor.
+ */
+function ViteMono(props: SVGProps<SVGSVGElement>) {
+  return <Vite variant="mono" {...props} />;
+}
+
+/**
+ * SQLite as the feather alone. The default variant is the full wordmark at a
+ * 2.25:1 aspect, so inside a 32px square it shrank to a sliver, and its
+ * lettering is #003B57, which disappears on the dark page.
+ */
+function SqliteMono(props: SVGProps<SVGSVGElement>) {
+  return <Sqlite variant="mono" {...props} />;
+}
 
 /**
  * Label → brand icon for the chips shown on project cards.
@@ -51,6 +76,14 @@ export const TECH_ICONS: Record<string, IconType> = {
   HeroUI: Heroui,
   "Tailwind CSS": TailwindCss,
   ShadcnUi: ShadcnUi,
+  Go: Go,
+  React: ReactIcon,
+  SQLite: SqliteMono,
+  FFmpeg: Ffmpeg,
+  Vite: ViteMono,
+  "GitHub Actions": GithubActions,
+  // Not in the icon set; cropped from the project's own banner artwork.
+  "yt-dlp": YtDlpMark,
 };
 
 /**
@@ -82,4 +115,7 @@ export const TECH_ICON_CLASS: Record<string, string> = {
   // GitHub's path has fill="#181717" baked in rather than currentColor, so it
   // sinks into the dark page. fill-current on descendants overrides it.
   GitHub: "text-foreground [&_*]:fill-current",
+  // The mono feather takes currentColor; SQLite blue restores the brand and
+  // holds non-text contrast on both a dark and a light page.
+  SQLite: "text-[#0F80CC]",
 };

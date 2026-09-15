@@ -48,6 +48,7 @@ export const techGroups: TechGroup[] = [
     items: [
       { name: "JavaScript", Icon: Javascript },
       { name: "TypeScript", Icon: Typescript },
+      { name: "Go", Icon: Go },
       { name: "Java", Icon: Java },
       { name: "Python", Icon: Python },
       { name: "PHP", Icon: Php }
@@ -97,4 +98,6 @@ export const techGroups: TechGroup[] = [
   }
 ];
 
-export const learningStack: TechItem[] = [{ name: "Go", Icon: Go }];
+// Empty is a valid state: the section hides the Learning row rather than
+// rendering a heading with nothing under it.
+export const learningStack: TechItem[] = [];

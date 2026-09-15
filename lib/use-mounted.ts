@@ -57,12 +57,12 @@ export function useMediaQuery(query: string): boolean {
  * Measured from getBoundingClientRect on scroll rather than with an
  * IntersectionObserver, on purpose. The observer's first callback lands before
  * layout has settled — while the document is still short every band reports as
- * intersecting, all five canvases mount, and because IO only re-fires on a
+ * intersecting, every canvas mounts, and because IO only re-fires on a
  * *change* the mistake is never corrected until something scrolls. Reading the
  * rect is deterministic and self-correcting.
  *
  * Used to defer mounting decorative canvases: a full-width 414px grid is
- * ~2.5 MB, and five of them are never on screen together.
+ * ~2.5 MB, and the section bands are never on screen together.
  */
 export function useNearViewport<T extends Element>(
   ref: React.RefObject<T | null>,

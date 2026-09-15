@@ -33,7 +33,7 @@ export function SectionEntrance({
 }) {
   const bandRef = React.useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  // Each grid canvas is ~2.5 MB. Mounting all five up front meant ~12.5 MB
+  // Each grid canvas is ~2.5 MB. Mounting all of them up front (five when measured) meant ~12.5 MB
   // sitting idle for backdrops that are never on screen together.
   const nearViewport = useNearViewport(bandRef);
 

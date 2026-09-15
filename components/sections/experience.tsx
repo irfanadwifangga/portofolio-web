@@ -5,7 +5,7 @@ import { experience } from "@/lib/content";
 export function Experience() {
   return (
     <section id="experience" className="border-t border-border">
-      <SectionEntrance index="04" title="Experience" />
+      <SectionEntrance index="05" title="Experience" />
 
       <div className="mx-auto max-w-6xl px-6 pb-24">
         <div className="relative border-l border-border pl-8">

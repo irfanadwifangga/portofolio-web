@@ -92,7 +92,6 @@ me = Profile(
   {
     id: "go",
     label: "Go",
-    badge: "learning",
     filename: "profile.go",
     code: `package main
 

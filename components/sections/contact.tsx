@@ -46,7 +46,7 @@ export function Contact() {
   return (
     <section id="contact" className="border-t border-border">
       <SectionEntrance
-        index="05"
+        index="06"
         title="Let's talk"
         description="Bandar Lampung, Indonesia. Open to remote fullstack roles — backend-first — and open to discussing relocation for the right one."
       />

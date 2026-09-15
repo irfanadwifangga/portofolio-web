@@ -21,7 +21,7 @@ const innerItems = all.filter((_, i) => i % 2 === 0);
 export function TechStack() {
   return (
     <section id="stack" className="border-t border-border">
-      <SectionEntrance index="03" title="Tech stack" />
+      <SectionEntrance index="04" title="Tech stack" />
 
       <div className="mx-auto max-w-6xl px-6 pb-24">
         {/* OrbitImages marks its container aria-hidden, so on its own the orbit
@@ -34,7 +34,9 @@ export function TechStack() {
               {group.category}: {group.items.map((i) => i.name).join(", ")}
             </li>
           ))}
-          <li>Currently learning: {learningStack.map((i) => i.name).join(", ")}</li>
+          {learningStack.length > 0 ? (
+            <li>Currently learning: {learningStack.map((i) => i.name).join(", ")}</li>
+          ) : null}
         </ul>
 
         <Reveal delay={0.05}>
@@ -66,14 +68,16 @@ export function TechStack() {
                 </dd>
               </div>
             ))}
-            <div className="flex flex-col gap-2">
-              <dt className="font-mono text-2xs tracking-[0.14em] text-amber-400/80 uppercase">
-                Learning
-              </dt>
-              <dd className="font-mono text-sm leading-relaxed text-foreground/85">
-                {learningStack.map((i) => i.name).join(" · ")}
-              </dd>
-            </div>
+            {learningStack.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <dt className="font-mono text-2xs tracking-[0.14em] text-amber-400/80 uppercase">
+                  Learning
+                </dt>
+                <dd className="font-mono text-sm leading-relaxed text-foreground/85">
+                  {learningStack.map((i) => i.name).join(" · ")}
+                </dd>
+              </div>
+            ) : null}
           </dl>
         </Reveal>
       </div>
