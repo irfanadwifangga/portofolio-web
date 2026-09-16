@@ -1,7 +1,9 @@
 import DecryptedText from "@/components/decrypted-text";
 import { HeroBackdrop } from "@/components/hero-backdrop";
 import { CodeEditor } from "@/components/code-editor";
-import { Typescript, Java, Python, Go } from "@thesvg/react";
+import { Typescript, Java, Python } from "@thesvg/react";
+// Go's default mark is white; GoMark swaps in its dark variant on the light theme.
+import { GoMark } from "@/lib/tech-icons";
 
 /**
  * Rendered here, in a server component, so the four language marks reach the
@@ -10,9 +12,9 @@ import { Typescript, Java, Python, Go } from "@thesvg/react";
  */
 const LANG_ICONS = {
   typescript: <Typescript width={14} height={14} />,
-  java: <Java width={14} height={14} />,
+  java: <Java width={14} height={14} className="light:brightness-90" />,
   python: <Python width={14} height={14} />,
-  go: <Go width={14} height={14} />
+  go: <GoMark width={14} height={14} />
 };
 
 export function Hero() {

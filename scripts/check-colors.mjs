@@ -13,9 +13,8 @@ export const ALLOWLIST = new Set([
   // rendered outside the page theme
   "app/opengraph-image.tsx",
   "app/actions/send-email.ts",
-  // the code editor stays dark in both themes (spec D4)
+  // the editor's window-control dots keep their macOS colours in both themes
   "components/code-editor.tsx",
-  "lib/highlight.tsx",
   // brand marks carry their own brand colours
   "lib/tech-icons.tsx",
   "lib/yt-dlp-mark.tsx",

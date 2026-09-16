@@ -172,14 +172,14 @@ function buildPattern(lang: SnippetLang): RegExp {
 }
 
 const CLASS_MAP: Record<string, string> = {
-  comment: "text-[#6a9955] italic",
-  string: "text-[#ce9178]",
-  tag: "text-[#dcdcaa]",
-  number: "text-[#b5cea8]",
-  keyword: "text-[#c586c0]",
-  type: "text-[#4ec9b0]",
-  func: "text-[#dcdcaa]",
-  punct: "text-[#9aa4b2]",
+  comment: "text-syntax-comment italic",
+  string: "text-syntax-string",
+  tag: "text-syntax-func",
+  number: "text-syntax-number",
+  keyword: "text-syntax-keyword",
+  type: "text-syntax-type",
+  func: "text-syntax-func",
+  punct: "text-syntax-punct",
 };
 
 function tokenizeLine(line: string, pattern: RegExp): Token[] {
@@ -192,19 +192,19 @@ function tokenizeLine(line: string, pattern: RegExp): Token[] {
     if (match.index > lastIndex) {
       tokens.push({
         text: line.slice(lastIndex, match.index),
-        cls: "text-[#d4d4d4]",
+        cls: "text-editor-text",
       });
     }
     const groups = match.groups ?? {};
     const kind = Object.keys(groups).find((k) => groups[k] !== undefined);
     tokens.push({
       text: match[0],
-      cls: kind ? CLASS_MAP[kind] : "text-[#d4d4d4]",
+      cls: kind ? CLASS_MAP[kind] : "text-editor-text",
     });
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < line.length) {
-    tokens.push({ text: line.slice(lastIndex), cls: "text-[#d4d4d4]" });
+    tokens.push({ text: line.slice(lastIndex), cls: "text-editor-text" });
   }
   return tokens;
 }
@@ -224,7 +224,7 @@ export function highlight(code: string, lang: SnippetLang): React.ReactNode[] {
     const tokens = tokenizeLine(line, pattern);
     return (
       <div key={i} className="table-row">
-        <span className="table-cell w-10 pr-4 text-right align-top text-[#7d8590] select-none">
+        <span className="table-cell w-10 pr-4 text-right align-top text-editor-gutter select-none">
           {i + 1}
         </span>
         <span className="table-cell align-top whitespace-pre-wrap sm:whitespace-pre">

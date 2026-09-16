@@ -55,15 +55,15 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
   }, [decoded, active]);
 
   return (
-    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/10 bg-editor-bg shadow-2xl shadow-shadow/40 backdrop-blur">
+    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-editor-border bg-editor-bg shadow-2xl shadow-shadow/40 backdrop-blur">
       {/* window chrome */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-editor-chrome px-4 py-3">
+      <div className="flex items-center justify-between border-b border-editor-border bg-editor-chrome px-4 py-3">
         <div className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
           <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
           <span className="h-3 w-3 rounded-full bg-[#27c93f]" />
         </div>
-        <span className="font-mono text-xs text-[#8b949e]">
+        <span className="font-mono text-xs text-editor-tab">
           <DecryptedText
             key={snippet.filename}
             text={snippet.filename}
@@ -71,7 +71,7 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
             sequential
             speed={28}
             useOriginalCharsOnly
-            encryptedClassName="text-[#3a4048]"
+            encryptedClassName="text-editor-scramble"
           />
         </span>
         <span className="w-16" />
@@ -81,7 +81,7 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
       <div
         role="tablist"
         aria-label="Profile in each language"
-        className="scrollbar-thin flex gap-0.5 overflow-x-auto border-b border-white/10 bg-editor-chrome px-2 pt-1">
+        className="scrollbar-thin flex gap-0.5 overflow-x-auto border-b border-editor-border bg-editor-chrome px-2 pt-1">
         {codeSnippets.map((s) => {
           const isActive = s.id === active;
           return (
@@ -95,7 +95,7 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
                 setDecoded(false);
               }}
               className={`relative flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3 py-2.5 font-mono text-xs transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:outline-none ${
-                isActive ? "bg-editor-bg text-[#e5e7eb]" : "text-[#8b949e] hover:text-[#c9d1d9]"
+                isActive ? "bg-editor-bg text-editor-tab-active" : "text-editor-tab hover:text-editor-tab-hover"
               }`}>
               <span
                 aria-hidden
@@ -104,7 +104,7 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
               </span>
               {s.label}
               {s.badge ? (
-                <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-2xs leading-none font-medium text-amber-400">
+                <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-2xs leading-none font-medium text-amber-400 light:text-amber-700">
                   {s.badge}
                 </span>
               ) : null}
@@ -126,10 +126,10 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
             ? highlight(snippet.code, snippet.id)
             : lines.map((line, i) => (
                 <div key={i} className="table-row">
-                  <span className="table-cell w-10 pr-4 text-right align-top text-[#7d8590] select-none">
+                  <span className="table-cell w-10 pr-4 text-right align-top text-editor-gutter select-none">
                     {i + 1}
                   </span>
-                  <span className="table-cell align-top whitespace-pre-wrap text-[#6e7681] sm:whitespace-pre">
+                  <span className="table-cell align-top whitespace-pre-wrap text-editor-dim sm:whitespace-pre">
                     {line.length === 0 ? (
                       " "
                     ) : (

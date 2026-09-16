@@ -18,8 +18,24 @@
   --surface-2: #16171b;
   --accent: #5b8def;
   --accent-soft: #12203f;
+  /* Code editor. It follows the page theme; syntax colours are VS Code Dark+. */
   --editor-bg: #0a0b0d;
   --editor-chrome: #131418;
+  --editor-border: #232428;
+  --editor-text: #d4d4d4;
+  --editor-gutter: #7d8590;
+  --editor-tab: #8b949e;
+  --editor-tab-hover: #c9d1d9;
+  --editor-tab-active: #e5e7eb;
+  --editor-dim: #6e7681;
+  --editor-scramble: #3a4048;
+  --syntax-comment: #6a9955;
+  --syntax-string: #ce9178;
+  --syntax-func: #dcdcaa;
+  --syntax-number: #b5cea8;
+  --syntax-keyword: #c586c0;
+  --syntax-type: #4ec9b0;
+  --syntax-punct: #9aa4b2;
 
   /* Scrollbar. The resting thumb is a non-text control and needs 3:1 against
      the page; the previous #363d4b measured 1.83:1. */
@@ -49,9 +65,24 @@
   --surface-2: #f1f3f6;
   --accent: #2f64d6;
   --accent-soft: #e6eefc;
-  /* The code editor stays dark in both themes. */
-  --editor-bg: #0a0b0d;
-  --editor-chrome: #131418;
+  /* Code editor; syntax colours are VS Code Light+. */
+  --editor-bg: #ffffff;
+  --editor-chrome: #f6f8fa;
+  --editor-border: #d0d7de;
+  --editor-text: #1f2328;
+  --editor-gutter: #636c76;
+  --editor-tab: #59636e;
+  --editor-tab-hover: #1f2328;
+  --editor-tab-active: #1f2328;
+  --editor-dim: #6e7781;
+  --editor-scramble: #c3c8d0;
+  --syntax-comment: #008000;
+  --syntax-string: #a31515;
+  --syntax-func: #795e26;
+  --syntax-number: #098658;
+  --syntax-keyword: #af00db;
+  --syntax-type: #267f99;
+  --syntax-punct: #57606a;
 
   --scrollbar-thumb: #8b919b;
   --scrollbar-thumb-hover: #5f6775;
@@ -75,6 +106,21 @@
   --color-accent-soft: var(--accent-soft);
   --color-editor-bg: var(--editor-bg);
   --color-editor-chrome: var(--editor-chrome);
+  --color-editor-border: var(--editor-border);
+  --color-editor-text: var(--editor-text);
+  --color-editor-gutter: var(--editor-gutter);
+  --color-editor-tab: var(--editor-tab);
+  --color-editor-tab-hover: var(--editor-tab-hover);
+  --color-editor-tab-active: var(--editor-tab-active);
+  --color-editor-dim: var(--editor-dim);
+  --color-editor-scramble: var(--editor-scramble);
+  --color-syntax-comment: var(--syntax-comment);
+  --color-syntax-string: var(--syntax-string);
+  --color-syntax-func: var(--syntax-func);
+  --color-syntax-number: var(--syntax-number);
+  --color-syntax-keyword: var(--syntax-keyword);
+  --color-syntax-type: var(--syntax-type);
+  --color-syntax-punct: var(--syntax-punct);
   --color-on-accent: var(--on-accent);
   --color-shadow: var(--shadow);
   --color-encrypted: var(--encrypted);
