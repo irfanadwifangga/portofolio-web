@@ -21,7 +21,9 @@ CSS v4.
   grouped text list underneath as the scannable version.
 - **Contact** — a compose form that delivers to the inbox through a server
   action; no third-party form service.
-- **Theme** — dark only. There is no light palette and no toggle.
+- **Theme** — light and dark. A first visit follows the OS setting; the header
+  toggle overrides it and is remembered. Both themes are held to measured
+  contrast: 4.5:1 for text and 3:1 for brand marks.
 - **Motion** — GSAP for the stack, orbits and section titles; `motion` for
   reveals; Lenis for smooth scrolling. Everything honours
   `prefers-reduced-motion`.
@@ -98,10 +100,48 @@ real bugs.
 | Tech stack groups | `lib/tech-stack.tsx` |
 | Per-project tech marks | `lib/tech-icons.tsx` |
 | Hero code-editor snippets | `lib/code-snippets.ts` |
+| Colour tokens for both themes | `app/globals.css` |
 
 `lib/site.ts` is the single source for anything that names the site. Metadata,
 canonical URL, sitemap, robots and the Open Graph image all read from it — the
 domain is deliberately not written out anywhere else.
+
+## Theming
+
+Light and dark are two token blocks in `app/globals.css`. `:root` holds dark,
+which is also what renders without JavaScript, and `:root[data-theme="light"]`
+overrides it. An inline script from `lib/theme.ts` sets `data-theme` on
+`<html>` before first paint, from the visitor's stored choice or else their OS
+setting. Choosing the theme the OS already asks for clears the stored choice,
+so the site goes back to following the system.
+
+Rules that keep the two themes from drifting apart:
+
+- Use tokens (`bg-surface`, `text-muted`, `shadow-shadow/40`, …), never colour
+  literals. `bun run check:colors` fails on a literal outside its allowlist.
+- For a one-off per-theme value, use the `light:` or `dark:` variant.
+- Anything painted outside CSS — a canvas, WebGL, a colour GSAP tweens — reads
+  resolved values with `useThemeColors` from `lib/use-theme.ts`, which re-reads
+  them on every theme change.
+- A brand mark whose artwork fails on one theme gets a `ThemePair` in
+  `lib/tech-icons.tsx`.
+
+To prove both themes after a change:
+
+```bash
+bun run test
+bun run check:colors
+bun run build
+bun run start -p 3300
+bun run audit:theme
+```
+
+The audit drives Edge headless (set `BROWSER_PATH` for another Chromium
+browser) through both themes at 1440, 1024 and 390px wide. It checks the
+contrast of every visible text element and tech mark, exercises the toggle,
+and writes a screenshot of every section to `.theme-audit/`. Text drawn over a
+canvas or image, such as the hero, cannot be judged from the DOM, so it is
+listed for manual review in `.theme-audit/report.json` rather than passed.
 
 ## Keeping icons off the client
 
