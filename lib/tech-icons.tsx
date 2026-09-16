@@ -168,25 +168,25 @@ export const TECH_ICONS: Record<string, IconType> = {
   Java: Java,
   "Next.js": Nextjs,
   "Next.js API Routes": Nextjs,
-  Prisma: Prisma,
+  Prisma: PrismaMark,
   PostgreSQL: Postgresql,
   Supabase: Supabase,
-  "Django REST Framework": Django,
+  "Django REST Framework": DjangoMark,
   "Google Drive API": GoogleDrive,
   "NextAuth.js": Authdotjs,
-  Spigot: Spigotmc,
+  Spigot: SpigotMark,
   // NextAuth ships as Auth.js in the icon set
   NextAuth: Authdotjs,
   AWS: Aws,
   "YouTube API": Youtube,
-  "Redis (Upstash)": Upstash,
+  "Redis (Upstash)": UpstashMark,
   Docker: Docker,
   Python: Python,
   HeroUI: Heroui,
-  "Tailwind CSS": TailwindCss,
-  ShadcnUi: ShadcnUi,
-  Go: Go,
-  React: ReactIcon,
+  "Tailwind CSS": TailwindMark,
+  ShadcnUi: ShadcnMark,
+  Go: GoMark,
+  React: ReactMark,
   SQLite: SqliteMono,
   FFmpeg: Ffmpeg,
   Vite: ViteMono,
@@ -227,6 +227,9 @@ export const TECH_ICON_CLASS: Record<string, string> = {
   // The mono feather takes currentColor; SQLite blue restores the brand and
   // holds non-text contrast on both a dark and a light page.
   SQLite: "text-[#0F80CC]",
+  // Java ships only its default artwork. The orange steam is 2.83:1 on the light
+  // page, and 3.43:1 once darkened by 10%.
+  Java: "light:brightness-90",
 };
 
 /**

@@ -3,14 +3,8 @@ import {
   Javascript,
   Typescript,
   Java,
-  Php,
   Nextjs,
-  React as ReactIcon,
-  Tailwindcss,
   Nodejs,
-  Django,
-  Spring,
-  Prisma,
   Celery,
   Htmx,
   Postgresql,
@@ -19,16 +13,25 @@ import {
   Docker,
   Git,
   Github,
-  Vercel,
-  Postman,
-  Go,
   Python,
   Authdotjs,
-  Upstash,
   Aws,
   Heroui,
   GoogleCloud
 } from "@thesvg/react";
+// Theme-aware versions of marks that fail on the light page.
+import {
+  DjangoMark,
+  GoMark,
+  PhpMark,
+  PostmanMark,
+  PrismaMark,
+  ReactMark,
+  SpringMark,
+  TailwindMark,
+  UpstashMark,
+  VercelMark
+} from "@/lib/tech-icons";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -48,18 +51,18 @@ export const techGroups: TechGroup[] = [
     items: [
       { name: "JavaScript", Icon: Javascript },
       { name: "TypeScript", Icon: Typescript },
-      { name: "Go", Icon: Go },
+      { name: "Go", Icon: GoMark },
       { name: "Java", Icon: Java },
       { name: "Python", Icon: Python },
-      { name: "PHP", Icon: Php }
+      { name: "PHP", Icon: PhpMark }
     ]
   },
   {
     category: "Frontend",
     items: [
       { name: "Next.js", Icon: Nextjs },
-      { name: "React", Icon: ReactIcon },
-      { name: "Tailwind CSS", Icon: Tailwindcss },
+      { name: "React", Icon: ReactMark },
+      { name: "Tailwind CSS", Icon: TailwindMark },
       { name: "HeroUI", Icon: Heroui }
     ]
   },
@@ -67,9 +70,9 @@ export const techGroups: TechGroup[] = [
     category: "Backend",
     items: [
       { name: "Node.js", Icon: Nodejs },
-      { name: "Django REST", Icon: Django },
-      { name: "Spring", Icon: Spring },
-      { name: "Prisma", Icon: Prisma },
+      { name: "Django REST", Icon: DjangoMark },
+      { name: "Spring", Icon: SpringMark },
+      { name: "Prisma", Icon: PrismaMark },
       { name: "NextAuth", Icon: Authdotjs },
       { name: "Celery", Icon: Celery },
       { name: "HTMX", Icon: Htmx }
@@ -81,7 +84,7 @@ export const techGroups: TechGroup[] = [
       { name: "PostgreSQL", Icon: Postgresql },
       { name: "Supabase", Icon: Supabase },
       { name: "Redis", Icon: Redis },
-      { name: "Upstash", Icon: Upstash }
+      { name: "Upstash", Icon: UpstashMark }
     ]
   },
   {
@@ -90,9 +93,9 @@ export const techGroups: TechGroup[] = [
       { name: "Docker", Icon: Docker },
       { name: "Git", Icon: Git },
       { name: "GitHub", Icon: Github },
-      { name: "Vercel", Icon: Vercel },
+      { name: "Vercel", Icon: VercelMark },
       { name: "AWS", Icon: Aws },
-      { name: "Postman", Icon: Postman },
+      { name: "Postman", Icon: PostmanMark },
       { name: "Google Cloud Console", Icon: GoogleCloud }
     ]
   }

@@ -11,7 +11,7 @@ function tokens(selector) {
   if (start === -1) return null;
   const body = css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
   return Object.fromEntries(
-    [...body.matchAll(/--([\\w-]+):\\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()])
+    [...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()])
   );
 }
 
