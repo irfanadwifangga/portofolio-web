@@ -61,7 +61,7 @@ export function SideProject() {
                 : "max-w-3xl"
             }>
             {hasImage ? (
-              <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface shadow-2xl shadow-black/40">
+              <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface shadow-2xl shadow-shadow/40">
                 <div className="relative aspect-[1920/1032]">
                   <Image
                     src={p.image}

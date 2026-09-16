@@ -15,6 +15,9 @@
 //  6. Restyled for this site: dark surface tokens instead of the hard-coded
 //     white panel / black text, a 56px header bar instead of `p-2em`, and a
 //     2.4rem item size instead of 4rem (6 items at 4rem overflow a 420px panel).
+//  7. `headerActions` slot, rendered left of the Menu toggle (the theme
+//     toggle). It is hidden and `inert` while the panel is open, because the
+//     panel covers the right of the header and the Menu toggle travels across.
 "use client";
 
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
@@ -38,6 +41,7 @@ export interface StaggeredMenuProps {
   displayItemNumbering?: boolean;
   className?: string;
   logo?: React.ReactNode;
+  headerActions?: React.ReactNode;
   menuButtonColor?: string;
   openMenuButtonColor?: string;
   accentColor?: string;
@@ -57,6 +61,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   displayItemNumbering = true,
   className,
   logo,
+  headerActions,
   menuButtonColor = "#fff",
   openMenuButtonColor = "#fff",
   changeMenuColorOnOpen = true,
@@ -494,6 +499,12 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
             <div className="sm-logo pointer-events-auto flex items-center select-none">{logo}</div>
 
+            <div className="flex items-center gap-4">
+              {headerActions ? (
+                <div className="sm-header-actions pointer-events-auto inline-flex items-center" inert={open}>
+                  {headerActions}
+                </div>
+              ) : null}
             <span ref={toggleShiftRef} className="sm-toggle-shift pointer-events-auto inline-flex">
               <button
                 ref={toggleBtnRef}
@@ -533,6 +544,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
                 </span>
               </button>
             </span>
+            </div>
           </div>
         </header>
 
@@ -618,6 +630,10 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
    72rem is the max-w-6xl header row; 8px reconciles the row's px-6 with the
    panel's 2rem padding so the button lands on the panel's inner right edge. */
 .sm-scope [data-open] .sm-toggle-shift { transform: translateX(var(--sm-toggle-shift, 0px)); }
+/* Header actions step aside while the panel is open. Visibility is delayed on
+   the way out so the fade is seen, and applied at once on the way back. */
+.sm-scope .sm-header-actions { transition: opacity 0.2s ease, visibility 0s linear 0s; }
+.sm-scope [data-open] .sm-header-actions { opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
 
 .sm-scope .sm-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 .sm-scope .sm-toggle-textWrap { position: relative; margin-right: 0.15em; display: inline-block; height: 1em; overflow: hidden; white-space: nowrap; }

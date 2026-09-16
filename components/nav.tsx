@@ -4,6 +4,8 @@ import StaggeredMenu, {
   type StaggeredMenuItem,
   type StaggeredMenuSocialItem
 } from "@/components/staggered-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useThemeColors } from "@/lib/use-theme";
 import Image from "next/image";
 
 const MENU_ITEMS: StaggeredMenuItem[] = [
@@ -30,17 +32,26 @@ const SOCIAL_ITEMS: StaggeredMenuSocialItem[] = [
   { label: "Email", link: "mailto:irvanadwifangga@gmail.com" }
 ];
 
+// Prelayers are painted through inline `background`, which accepts var().
+// Module-level so StaggeredMenu receives the same array on every render.
+const PRELAYER_COLORS = ["var(--surface-2)", "var(--border)"];
+
+// The Menu toggle's colour is tweened by GSAP, which cannot interpolate var(),
+// so these two are passed as resolved values once the theme is known.
+const TOGGLE_TOKENS = ["muted", "foreground"] as const;
+
 /**
- * Site header: the wordmark and a single menu toggle, nothing else — the
- * section rail and this panel carry navigation now.
+ * Site header: the wordmark, the theme toggle and a single menu toggle.
  *
  * Two layers: a plain fixed strip that supplies the blurred bar (so it spans
  * the full viewport width, which the menu's own max-w-6xl header row does
- * not), and StaggeredMenu above it holding the wordmark, the toggle and the
+ * not), and StaggeredMenu above it holding the wordmark, the toggles and the
  * panel. Panel links are ordinary in-page anchors, so the global Lenis click
  * interceptor scrolls them with the shared header offset.
  */
 export function Nav() {
+  const toggle = useThemeColors(TOGGLE_TOKENS);
+
   return (
     <>
       <div className="pointer-events-none fixed inset-x-0 top-0 z-30 h-14 border-b border-border/60 bg-background/70 backdrop-blur-md" />
@@ -52,12 +63,15 @@ export function Nav() {
         socialItems={SOCIAL_ITEMS}
         displaySocials
         displayItemNumbering
-        colors={["#16171b", "#1f2228"]}
-        accentColor="#5b8def"
-        menuButtonColor="#9ca3af"
-        openMenuButtonColor="#edeef0"
+        colors={PRELAYER_COLORS}
+        accentColor="var(--accent)"
+        // var() works for the initial gsap.set; the resolved values replace it
+        // before the first open, when the colour is actually tweened.
+        menuButtonColor={toggle?.muted ?? "var(--muted)"}
+        openMenuButtonColor={toggle?.foreground ?? "var(--foreground)"}
         changeMenuColorOnOpen
         closeOnClickAway
+        headerActions={<ThemeToggle />}
         logo={
           <a
             href="#top"

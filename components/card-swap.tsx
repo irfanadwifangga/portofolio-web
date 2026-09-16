@@ -9,6 +9,9 @@
 //   4. The positioning wrapper is a prop-driven className instead of the
 //      hardcoded bottom-right offsets, which assumed a full-bleed hero.
 //   5. Added `onActiveChange` so a sibling panel can follow the front card.
+//   6. The card shadow uses the --shadow token (`shadow-shadow/40`) instead of
+//      `shadow-black/40`, so it softens in the light theme instead of reading
+//      as a dirty smudge.
 "use client";
 
 import React, {
@@ -49,7 +52,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(({ customClass, ...res
   <div
     ref={ref}
     {...rest}
-    className={`absolute top-1/2 left-1/2 overflow-hidden rounded-xl border border-border bg-surface shadow-2xl shadow-black/40 [backface-visibility:hidden] [transform-style:preserve-3d] [will-change:transform] ${customClass ?? ""} ${rest.className ?? ""}`.trim()}
+    className={`absolute top-1/2 left-1/2 overflow-hidden rounded-xl border border-border bg-surface shadow-2xl shadow-shadow/40 [backface-visibility:hidden] [transform-style:preserve-3d] [will-change:transform] ${customClass ?? ""} ${rest.className ?? ""}`.trim()}
   />
 ));
 Card.displayName = "Card";

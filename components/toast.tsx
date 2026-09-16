@@ -35,7 +35,7 @@ const ICON: Record<ToastVariant, React.ReactNode> = {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="shrink-0 text-emerald-400"
+      className="shrink-0 text-emerald-400 light:text-emerald-600"
     >
       <path d="M20 6 9 17l-5-5" />
     </svg>
@@ -51,7 +51,7 @@ const ICON: Record<ToastVariant, React.ReactNode> = {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="shrink-0 text-red-400"
+      className="shrink-0 text-red-400 light:text-red-600"
     >
       <circle cx="12" cy="12" r="10" />
       <line x1="15" y1="9" x2="9" y2="15" />
@@ -79,8 +79,8 @@ const ICON: Record<ToastVariant, React.ReactNode> = {
 };
 
 const BORDER_COLOR: Record<ToastVariant, string> = {
-  success: "border-emerald-400/20",
-  error: "border-red-400/20",
+  success: "border-emerald-400/20 light:border-emerald-600/30",
+  error: "border-red-400/20 light:border-red-600/30",
   info: "border-accent/20",
 };
 
@@ -126,7 +126,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -10, scale: 0.95, filter: "blur(4px)" }}
               transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
-              className={`pointer-events-auto flex items-center gap-3 rounded-xl border ${BORDER_COLOR[t.variant]} bg-surface/90 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-md`}
+              className={`pointer-events-auto flex items-center gap-3 rounded-xl border ${BORDER_COLOR[t.variant]} bg-surface/90 px-4 py-3 shadow-2xl shadow-shadow/30 backdrop-blur-md`}
             >
               {ICON[t.variant]}
               <span className="font-mono text-sm text-foreground">

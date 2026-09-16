@@ -6,9 +6,13 @@
 //      left a visible purple cast at the edges.
 //   3. `hoverFillColor` / mouse tracking are kept, but the canvas is rendered
 //      behind pointer-events:none content here — see SectionBackground.
+//   4. The vignette's first stop is the vignette colour at alpha 0 instead of
+//      rgba(0, 0, 0, 0). Canvas gradients interpolate unpremultiplied, so a
+//      fade from transparent black into a light page colour passed through grey.
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { transparentOf } from "@/lib/color";
 
 type CanvasStrokeStyle = string | CanvasGradient | CanvasPattern;
 
@@ -219,7 +223,7 @@ const ShapeGrid: React.FC<ShapeGridProps> = ({
         canvas.height / 2,
         Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
       );
-      gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+      gradient.addColorStop(0, transparentOf(vignetteColor));
       gradient.addColorStop(1, vignetteColor);
 
       ctx.fillStyle = gradient;

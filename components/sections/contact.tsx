@@ -77,7 +77,7 @@ export function Contact() {
         <Reveal delay={0.16}>
           <p className="mt-10 flex items-center justify-center gap-2 font-mono text-xs text-muted-2">
             <span aria-hidden className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/70" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/70 light:bg-emerald-600" />
             </span>
             Available for new work
           </p>

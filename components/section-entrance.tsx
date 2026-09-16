@@ -4,11 +4,15 @@ import dynamic from "next/dynamic";
 import Shuffle from "@/components/shuffle";
 import * as React from "react";
 import { usePrefersReducedMotion, useNearViewport } from "@/lib/use-mounted";
+import { useThemeColors } from "@/lib/use-theme";
 
 // Client-only: ShapeGrid measures its canvas on mount and drives a rAF loop.
 const ShapeGrid = dynamic(() => import("@/components/shape-grid"), {
   ssr: false
 });
+
+// The grid draws on a canvas, which cannot read CSS variables.
+const GRID_TOKENS = ["grid-line", "accent-soft", "background"] as const;
 
 /**
  * The band you pass through on the way into a section.
@@ -36,12 +40,13 @@ export function SectionEntrance({
   // Each grid canvas is ~2.5 MB. Mounting all of them up front (five when measured) meant ~12.5 MB
   // sitting idle for backdrops that are never on screen together.
   const nearViewport = useNearViewport(bandRef);
+  const grid = useThemeColors(GRID_TOKENS);
 
   return (
     <div
       ref={bandRef}
       className="relative isolate flex min-h-[46vh] items-center overflow-hidden py-16">
-      {!reducedMotion && nearViewport && (
+      {!reducedMotion && nearViewport && grid && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10 [&_*]:!pointer-events-none">
@@ -50,10 +55,10 @@ export function SectionEntrance({
             speed={0.3}
             squareSize={46}
             shape="square"
-            borderColor="#1b1d23"
-            hoverFillColor="#12203f"
+            borderColor={grid["grid-line"]}
+            hoverFillColor={grid["accent-soft"]}
             hoverTrailAmount={0}
-            vignetteColor="#08090b"
+            vignetteColor={grid.background}
           />
           {/* fade the band into the sections above and below it */}
           <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background to-transparent" />

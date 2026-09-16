@@ -55,7 +55,7 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
   }, [decoded, active]);
 
   return (
-    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/10 bg-editor-bg shadow-2xl shadow-black/40 backdrop-blur">
+    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/10 bg-editor-bg shadow-2xl shadow-shadow/40 backdrop-blur">
       {/* window chrome */}
       <div className="flex items-center justify-between border-b border-white/10 bg-editor-chrome px-4 py-3">
         <div className="flex items-center gap-1.5">

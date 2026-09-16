@@ -34,7 +34,7 @@ export function OrbitMark({ name, Icon }: { name: string; Icon: IconType }) {
       <Icon
         width={60}
         height={60}
-        className={`opacity-85 transition-[opacity,transform] duration-150 ease-out group-hover:scale-110 group-hover:opacity-100 ${TECH_ICON_CLASS[name] ?? ""}`}
+        className={`transition-transform duration-150 ease-out group-hover:scale-110 ${TECH_ICON_CLASS[name] ?? ""}`}
       />
       <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-lg border border-border bg-surface px-3 py-1.5 font-mono text-base whitespace-nowrap text-foreground opacity-0 shadow-lg transition-opacity duration-150 ease-out group-hover:opacity-100">
         {name}
@@ -50,8 +50,8 @@ export function OrbitMark({ name, Icon }: { name: string; Icon: IconType }) {
  */
 export function GridMark({ name, Icon }: { name: string; Icon: IconType }) {
   return (
-    <span title={name} className="flex h-10 w-10 items-center justify-center">
-      <Icon width={30} height={30} className={`opacity-85 ${TECH_ICON_CLASS[name] ?? ""}`} />
+    <span title={name} data-tech-mark={name} className="flex h-10 w-10 items-center justify-center">
+      <Icon width={30} height={30} className={TECH_ICON_CLASS[name] ?? ""} />
     </span>
   );
 }

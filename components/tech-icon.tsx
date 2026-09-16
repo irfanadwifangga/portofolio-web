@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { TECH_ICONS, TECH_IMAGES, TECH_ICON_CLASS } from "@/lib/tech-icons";
+import { TECH_ICONS, TECH_IMAGES, TECH_ICON_CLASS, TECH_IMAGE_CLASS } from "@/lib/tech-icons";
 
 /**
  * Bare 32x32 brand mark with a hover tooltip — no pill, no label text.
@@ -11,22 +11,28 @@ import { TECH_ICONS, TECH_IMAGES, TECH_ICON_CLASS } from "@/lib/tech-icons";
  *
  * The marks are not focusable (12 decorative tab stops per section would be
  * hostile), so the accessible name rides on aria-label instead of the tooltip.
+ *
+ * Marks rest at full opacity. A resting dim put FFmpeg under 3:1 in the dark
+ * theme, and SQLite and GitHub Actions under 3:1 in the light one; hover keeps
+ * only the scale.
  */
 export function TechIcon({ label }: { label: string }) {
   const Icon = TECH_ICONS[label];
   const src = TECH_IMAGES[label];
   const iconClass = TECH_ICON_CLASS[label] ?? "";
+  const imageClass = TECH_IMAGE_CLASS[label] ?? "";
 
   return (
     <span className="group relative flex">
       <span
         role="img"
         aria-label={label}
-        className="flex h-8 w-8 items-center justify-center opacity-75 transition-[opacity,transform] duration-150 ease-out group-hover:scale-110 group-hover:opacity-100">
+        data-tech-mark={label}
+        className="flex h-8 w-8 items-center justify-center transition-transform duration-150 ease-out group-hover:scale-110">
         {Icon ? (
           <Icon width={32} height={32} className={iconClass} />
         ) : src ? (
-          <Image src={src} alt="" width={32} height={32} className="h-8 w-8 object-contain" />
+          <Image src={src} alt="" width={32} height={32} className={`h-8 w-8 object-contain ${imageClass}`} />
         ) : (
           <span className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface-2 font-mono text-2xs text-muted">
             {label.slice(0, 2).toUpperCase()}

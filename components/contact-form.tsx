@@ -156,7 +156,7 @@ export function ContactForm() {
       className="mx-auto w-full max-w-xl"
       noValidate
     >
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-black/25 transition-shadow duration-300 hover:shadow-black/40">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-shadow/25 transition-shadow duration-300 hover:shadow-shadow/40">
         {/* ---- Title bar ---- */}
         <div className="flex items-center gap-2.5 border-b border-border bg-surface-2 px-5 py-3">
           <ComposeIcon />
@@ -208,14 +208,14 @@ export function ContactForm() {
           <span
             className={`absolute bottom-3 right-4 font-mono text-xs transition-colors ${
               form.body.length > MAX_BODY * 0.9
-                ? "text-red-400"
-                : "text-muted-2/40"
+                ? "text-red-400 light:text-red-600"
+                : "text-muted-2"
             }`}
           >
             {form.body.length}/{MAX_BODY}
           </span>
           {errors.body && (
-            <p className="px-5 pb-3 font-mono text-xs text-red-400">
+            <p className="px-5 pb-3 font-mono text-xs text-red-400 light:text-red-600">
               {errors.body}
             </p>
           )}
@@ -226,7 +226,7 @@ export function ContactForm() {
           <button
             type="submit"
             disabled={sending}
-            className="group relative flex items-center gap-2.5 rounded-xl bg-accent px-5 py-2.5 font-mono text-sm font-medium text-white shadow-lg shadow-accent/20 transition-all duration-200 hover:bg-accent/90 hover:shadow-accent/30 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
+            className="group relative flex items-center gap-2.5 rounded-xl bg-accent px-5 py-2.5 font-mono text-sm font-medium text-on-accent shadow-lg shadow-accent/20 transition-all duration-200 hover:bg-accent/90 hover:shadow-accent/30 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <AnimatePresence mode="wait" initial={false}>
               {sending ? (
@@ -273,7 +273,7 @@ export function ContactForm() {
             {sending ? "Sending..." : sent ? "Sent!" : "Send Message"}
           </button>
 
-          <span className="hidden font-mono text-xs text-muted-2/50 sm:block">
+          <span className="hidden font-mono text-xs text-muted-2 sm:block">
             Ctrl + Enter
           </span>
         </div>
@@ -316,7 +316,7 @@ function FormField({
           onChange={onChange}
           autoComplete={autoComplete}
           className={`w-full bg-transparent py-3 pr-5 font-mono text-sm text-foreground placeholder:text-muted-2/50 focus:outline-none ${
-            error ? "text-red-400" : ""
+            error ? "text-red-400 light:text-red-600" : ""
           }`}
         />
       </div>
@@ -339,7 +339,7 @@ function FormField({
               strokeWidth={2}
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-red-400"
+              className="text-red-400 light:text-red-600"
               aria-hidden
             >
               <circle cx="12" cy="12" r="10" />

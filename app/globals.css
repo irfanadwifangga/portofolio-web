@@ -1,7 +1,11 @@
 @import "tailwindcss";
 
-/* Dark-only. There is no light palette and no theme switching — these are the
-   single source of truth for every surface colour. */
+/* Per-theme values for every colour on the page. Dark lives on :root, so it is
+   also what renders before the boot script runs or without JavaScript; light
+   overrides it below. lib/theme.ts sets `data-theme` on <html>. */
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   color-scheme: dark;
 
@@ -17,11 +21,46 @@
   --editor-bg: #0a0b0d;
   --editor-chrome: #131418;
 
-  /* Scrollbar. --border is only 1.6:1 against the page and reads as invisible,
-     so the resting thumb sits a step brighter than any structural border. */
-  --scrollbar-thumb: #363d4b;
+  /* Scrollbar. The resting thumb is a non-text control and needs 3:1 against
+     the page; the previous #363d4b measured 1.83:1. */
+  --scrollbar-thumb: #5f6775;
   --scrollbar-thumb-hover: #8b919b;
   --scrollbar-thumb-active: #9ca3af;
+
+  /* Text on an accent fill: white on #5b8def is only 3.23:1. */
+  --on-accent: #08090b;
+  /* Shadow colour; each utility keeps its own strength, e.g. shadow-shadow/40. */
+  --shadow: #000000;
+  /* DecryptedText's scramble state. Decorative, not body text. */
+  --encrypted: #454a53;
+  /* ShapeGrid lines in the section entrance bands. */
+  --grid-line: #1b1d23;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #f8f9fb;
+  --foreground: #0f1115;
+  --muted: #4a5160;
+  --muted-2: #5f6775;
+  --border: #e3e6eb;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --accent: #2f64d6;
+  --accent-soft: #e6eefc;
+  /* The code editor stays dark in both themes. */
+  --editor-bg: #0a0b0d;
+  --editor-chrome: #131418;
+
+  --scrollbar-thumb: #8b919b;
+  --scrollbar-thumb-hover: #5f6775;
+  --scrollbar-thumb-active: #4a5160;
+
+  --on-accent: #ffffff;
+  --shadow: #64748b;
+  --encrypted: #c3c8d0;
+  --grid-line: #e6e8ec;
 }
 
 @theme inline {
@@ -36,6 +75,9 @@
   --color-accent-soft: var(--accent-soft);
   --color-editor-bg: var(--editor-bg);
   --color-editor-chrome: var(--editor-chrome);
+  --color-on-accent: var(--on-accent);
+  --color-shadow: var(--shadow);
+  --color-encrypted: var(--encrypted);
   --font-sans: var(--font-geist-sans);
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-pixel: var(--font-pixel-src), "Courier New", monospace;
@@ -81,9 +123,19 @@ body {
   color: var(--foreground);
 }
 
+/* lib/theme.ts sets this for two frames around a theme swap. Without it,
+   elements with transition-colors animate at different speeds and the page
+   briefly shows both themes at once. Elements marked data-theme-motion (the
+   toggle's own icons) keep their transition: that swap is meant to animate. */
+[data-theme-switching] *:not([data-theme-motion]),
+[data-theme-switching] *:not([data-theme-motion])::before,
+[data-theme-switching] *:not([data-theme-motion])::after {
+  transition: none !important;
+}
+
 ::selection {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
 }
 
 /* ---------------------------------------------------------------------------

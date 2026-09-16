@@ -1,5 +1,13 @@
 // Vendored from React Bits — https://reactbits.dev/backgrounds/faulty-terminal
-// Variant: TS + Tailwind. Unmodified except for this header.
+// Variant: TS + Tailwind. Changed from upstream:
+//   1. Transparent canvas. The renderer sets alpha and premultipliedAlpha:
+//      false explicitly and clears to transparent, and the shader outputs
+//      straight alpha from the glyph intensity instead of an opaque pixel. The
+//      page shows through, so the same backdrop works on a light theme.
+//   2. `tint` and `brightness` update the existing program's uniforms in place.
+//      Upstream lists them as dependencies of the effect that creates the WebGL
+//      context, so changing either rebuilt the context, flickered, and replayed
+//      the page-load animation — which would happen on every theme switch.
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 
@@ -220,15 +228,16 @@ void main() {
       col.b = getColor(p - ca).b;
     }
 
-    col *= uTint;
-    col *= uBrightness;
+    // Alpha comes from the glyph intensity before tinting, so the tint sets
+    // the hue alone and the page shows through between glyphs.
+    float alpha = clamp(max(col.r, max(col.g, col.b)) * uBrightness, 0.0, 1.0);
 
     if(uDither > 0.0){
       float rnd = hash21(gl_FragCoord.xy);
-      col += (rnd - 0.5) * (uDither * 0.003922);
+      alpha = clamp(alpha + (rnd - 0.5) * (uDither * 0.003922), 0.0, 1.0);
     }
 
-    gl_FragColor = vec4(col, 1.0);
+    gl_FragColor = vec4(uTint, alpha);
 }
 `;
 
@@ -287,6 +296,21 @@ export default function FaultyTerminal({
     [dither]
   );
 
+  // Deviation 2. The context-creating effect below reads these refs instead of
+  // depending on tint and brightness; this effect pushes later changes straight
+  // into the live program. Declared first, so on mount the refs are set before
+  // that effect reads them.
+  const tintRef = useRef(tintVec);
+  const brightnessRef = useRef(brightness);
+  useEffect(() => {
+    tintRef.current = tintVec;
+    brightnessRef.current = brightness;
+    const program = programRef.current;
+    if (!program) return;
+    program.uniforms.uTint.value = new Color(tintVec[0], tintVec[1], tintVec[2]);
+    program.uniforms.uBrightness.value = brightness;
+  }, [tintVec, brightness]);
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const ctn = containerRef.current;
     if (!ctn) return;
@@ -300,10 +324,10 @@ export default function FaultyTerminal({
     const ctn = containerRef.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({ dpr });
+    const renderer = new Renderer({ dpr, alpha: true, premultipliedAlpha: false });
     rendererRef.current = renderer;
     const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, 0);
 
     const geometry = new Triangle(gl);
 
@@ -326,7 +350,7 @@ export default function FaultyTerminal({
         uChromaticAberration: { value: chromaticAberration },
         uDither: { value: ditherValue },
         uCurvature: { value: curvature },
-        uTint: { value: new Color(tintVec[0], tintVec[1], tintVec[2]) },
+        uTint: { value: new Color(tintRef.current[0], tintRef.current[1], tintRef.current[2]) },
         uMouse: {
           value: new Float32Array([smoothMouseRef.current.x, smoothMouseRef.current.y])
         },
@@ -334,7 +358,7 @@ export default function FaultyTerminal({
         uUseMouse: { value: mouseReact ? 1 : 0 },
         uPageLoadProgress: { value: pageLoadAnimation ? 0 : 1 },
         uUsePageLoadAnimation: { value: pageLoadAnimation ? 1 : 0 },
-        uBrightness: { value: brightness }
+        uBrightness: { value: brightnessRef.current }
       }
     });
     programRef.current = program;
@@ -419,11 +443,9 @@ export default function FaultyTerminal({
     chromaticAberration,
     ditherValue,
     curvature,
-    tintVec,
     mouseReact,
     mouseStrength,
     pageLoadAnimation,
-    brightness,
     handleMouseMove
   ]);
 

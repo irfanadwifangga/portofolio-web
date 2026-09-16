@@ -2,12 +2,18 @@
 
 import dynamic from "next/dynamic";
 import { useMounted, usePrefersReducedMotion } from "@/lib/use-mounted";
+import { useTheme, useThemeColors } from "@/lib/use-theme";
 
 // Client-only: FaultyTerminal reads window.devicePixelRatio in a default param,
 // which would throw during SSR.
 const FaultyTerminal = dynamic(() => import("@/components/faulty-terminal"), {
   ssr: false
 });
+
+const ACCENT = ["accent"] as const;
+
+// Glyph intensity per theme. The light value is tuned against screenshots.
+const BRIGHTNESS = { dark: 0.5, light: 0.5 } as const;
 
 /**
  * Hero backdrop — React Bits "Faulty Terminal".
@@ -19,12 +25,18 @@ const FaultyTerminal = dynamic(() => import("@/components/faulty-terminal"), {
  * to read as texture, never as a competing element. A scrim fades it into the
  * section boundary, and the whole subtree is pointer-events:none so it can
  * never swallow scroll the way the old ShaderGradient did.
+ *
+ * The tint follows --accent and the canvas is transparent (see
+ * faulty-terminal.tsx), so the same backdrop sits on either theme.
  */
 export function HeroBackdrop() {
   const mounted = useMounted();
   const reducedMotion = usePrefersReducedMotion();
+  const theme = useTheme();
+  const colors = useThemeColors(ACCENT);
 
-  if (!mounted) return null;
+  // The theme, and so the colours, are only known after mount.
+  if (!mounted || !theme || !colors) return null;
 
   return (
     <div
@@ -43,10 +55,10 @@ export function HeroBackdrop() {
         noiseAmp={0.9}
         chromaticAberration={0}
         curvature={0.12}
-        tint="#5b8def"
+        tint={colors.accent}
         mouseReact={false}
         pageLoadAnimation={!reducedMotion}
-        brightness={0.5}
+        brightness={BRIGHTNESS[theme]}
         className="h-full w-full"
       />
       {/* legibility scrim — keeps text contrast intact and hides the hard edge */}

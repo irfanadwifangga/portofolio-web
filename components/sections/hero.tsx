@@ -57,7 +57,7 @@ export function Hero() {
               revealDirection="start"
               speed={5}
               useOriginalCharsOnly
-              encryptedClassName="text-[#454a53]"
+              encryptedClassName="text-encrypted"
             />
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -97,7 +97,7 @@ export function Hero() {
               speed={22}
               useOriginalCharsOnly={false}
               characters="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·"
-              encryptedClassName="text-[#454a53]"
+              encryptedClassName="text-encrypted"
             />
           </p>
         </div>
