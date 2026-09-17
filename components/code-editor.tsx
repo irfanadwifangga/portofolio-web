@@ -69,8 +69,6 @@ export function CodeEditor({ langIcons, tabsLabel }: CodeEditorProps) {
           <DecryptedText
             key={snippet.filename}
             text={snippet.filename}
-            animateOn="view"
-            sequential
             speed={28}
             useOriginalCharsOnly
             encryptedClassName="text-editor-scramble"
@@ -138,9 +136,6 @@ export function CodeEditor({ langIcons, tabsLabel }: CodeEditorProps) {
                       <DecryptedText
                         key={`${snippet.id}-${i}`}
                         text={line}
-                        animateOn="view"
-                        sequential
-                        revealDirection="start"
                         speed={26}
                         useOriginalCharsOnly
                         parentClassName="whitespace-pre-wrap sm:whitespace-pre"

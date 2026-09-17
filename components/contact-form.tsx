@@ -261,7 +261,8 @@ export function ContactForm({
           >
             <span className="grid h-4 w-4 place-items-center">
               <span className={`${ICON_STATE} ${sending ? ICON_SHOWN : ICON_HIDDEN}`}>
-                <SpinnerIcon className="animate-spin" />
+                {/* Spins only while visible; a hidden spinner would keep the page repainting. */}
+                <SpinnerIcon className={sending ? "animate-spin" : undefined} />
               </span>
               <span className={`${ICON_STATE} ${!sending && sent ? ICON_SHOWN : ICON_HIDDEN}`}>
                 <CheckIcon />

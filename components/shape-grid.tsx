@@ -9,6 +9,14 @@
 //   4. The vignette's first stop is the vignette colour at alpha 0 instead of
 //      rgba(0, 0, 0, 0). Canvas gradients interpolate unpremultiplied, so a
 //      fade from transparent black into a light page colour passed through grey.
+//   5. Cheaper frames. Upstream stroked every square cell separately and
+//      filled the whole canvas with a freshly built vignette gradient on every
+//      frame. With graphics acceleration off the browser rasterises canvas on
+//      the CPU, and an entrance band kept the main thread 99% busy with a 40 ms
+//      input delay. Now the square grid is one path of full-length lines, each
+//      set stroked twice, so edges and crossings get the same double coverage
+//      as upstream's neighbouring cells gave them. The vignette is painted once
+//      per size on a second, static canvas above the grid.
 "use client";
 
 import React, { useRef, useEffect } from "react";
@@ -43,6 +51,7 @@ const ShapeGrid: React.FC<ShapeGridProps> = ({
   vignetteColor = "#120F17"
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const vignetteRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | null>(null);
   const gridOffset = useRef<GridOffset>({ x: 0, y: 0 });
   const hoveredSquareRef = useRef<GridOffset | null>(null);
@@ -59,9 +68,31 @@ const ShapeGrid: React.FC<ShapeGridProps> = ({
     const hexHoriz = squareSize * 1.5;
     const hexVert = squareSize * Math.sqrt(3);
 
+    // Deviation 5: the vignette lives on its own canvas and is painted per size.
+    const paintVignette = () => {
+      const layer = vignetteRef.current;
+      const layerCtx = layer?.getContext("2d");
+      if (!layer || !layerCtx) return;
+      layer.width = canvas.width;
+      layer.height = canvas.height;
+      const gradient = layerCtx.createRadialGradient(
+        layer.width / 2,
+        layer.height / 2,
+        0,
+        layer.width / 2,
+        layer.height / 2,
+        Math.sqrt(layer.width ** 2 + layer.height ** 2) / 2
+      );
+      gradient.addColorStop(0, transparentOf(vignetteColor));
+      gradient.addColorStop(1, vignetteColor);
+      layerCtx.fillStyle = gradient;
+      layerCtx.fillRect(0, 0, layer.width, layer.height);
+    };
+
     const resizeCanvas = () => {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
+      paintVignette();
     };
 
     window.addEventListener("resize", resizeCanvas);
@@ -193,41 +224,33 @@ const ShapeGrid: React.FC<ShapeGridProps> = ({
         const offsetX = ((gridOffset.current.x % squareSize) + squareSize) % squareSize;
         const offsetY = ((gridOffset.current.y % squareSize) + squareSize) % squareSize;
 
-        const cols = Math.ceil(canvas.width / squareSize) + 3;
-        const rows = Math.ceil(canvas.height / squareSize) + 3;
-
-        for (let col = -2; col < cols; col++) {
-          for (let row = -2; row < rows; row++) {
-            const sx = col * squareSize + offsetX;
-            const sy = row * squareSize + offsetY;
-
-            const alpha = cellOpacities.current.get(`${col},${row}`);
-            if (alpha) {
-              ctx.globalAlpha = alpha;
-              ctx.fillStyle = hoverFillColor;
-              ctx.fillRect(sx, sy, squareSize, squareSize);
-              ctx.globalAlpha = 1;
-            }
-
-            ctx.strokeStyle = borderColor;
-            ctx.strokeRect(sx, sy, squareSize, squareSize);
-          }
+        // Hovered cells first, so the grid lines stay on top of their fill.
+        for (const [key, alpha] of cellOpacities.current) {
+          const [col, row] = key.split(",").map(Number);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = hoverFillColor;
+          ctx.fillRect(col * squareSize + offsetX, row * squareSize + offsetY, squareSize, squareSize);
+          ctx.globalAlpha = 1;
         }
+
+        // Deviation 5: every vertical line in one path and every horizontal
+        // line in another, each stroked twice.
+        ctx.strokeStyle = borderColor;
+        const vertical = new Path2D();
+        for (let x = offsetX - squareSize; x <= canvas.width + squareSize; x += squareSize) {
+          vertical.moveTo(x, 0);
+          vertical.lineTo(x, canvas.height);
+        }
+        const horizontal = new Path2D();
+        for (let y = offsetY - squareSize; y <= canvas.height + squareSize; y += squareSize) {
+          horizontal.moveTo(0, y);
+          horizontal.lineTo(canvas.width, y);
+        }
+        ctx.stroke(vertical);
+        ctx.stroke(vertical);
+        ctx.stroke(horizontal);
+        ctx.stroke(horizontal);
       }
-
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
-      );
-      gradient.addColorStop(0, transparentOf(vignetteColor));
-      gradient.addColorStop(1, vignetteColor);
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
     const updateCellOpacities = () => {
@@ -341,7 +364,12 @@ const ShapeGrid: React.FC<ShapeGridProps> = ({
     vignetteColor
   ]);
 
-  return <canvas ref={canvasRef} className="block h-full w-full border-none" />;
+  return (
+    <>
+      <canvas ref={canvasRef} className="block h-full w-full border-none" />
+      <canvas ref={vignetteRef} className="absolute inset-0 block h-full w-full border-none" />
+    </>
+  );
 };
 
 export default ShapeGrid;

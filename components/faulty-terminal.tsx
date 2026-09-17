@@ -19,6 +19,16 @@
 //      off screen. The glitch drifts slowly (timeScale 0.28), so 30 fps reads
 //      the same, and upstream kept rendering a full-viewport shader at the
 //      display's refresh rate for as long as the page stayed open.
+//   5. Freezes into a still frame where animating it would drag the page down.
+//      The shader samples the glyph pattern ten times per pixel; with graphics
+//      acceleration off the browser runs it on the CPU, and a desktop measured
+//      11 cores busy, 15 fps and a 350 ms input delay. So it draws one frame and
+//      stops when the browser renders WebGL in software, when the visitor
+//      prefers reduced motion (`pause`), or when frames keep arriving slower
+//      than 20 fps while it runs. A frozen backdrop redraws only on resize and
+//      on a theme change.
+//   6. No crash without WebGL. OGL throws when it cannot get a context, which
+//      took the page down with it; the backdrop is simply left out instead.
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 
@@ -26,6 +36,28 @@ type Vec2 = [number, number];
 
 /** Deviation 4: ~30 fps, with a little slack so a 60 Hz display hits every other frame. */
 const FRAME_INTERVAL_MS = 1000 / 30 - 2;
+
+/** Deviation 5: a median gap between frames above this means the device can't keep up. */
+const SLOW_FRAME_MS = 50;
+/** Frames per slow-frame check. */
+const SLOW_WINDOW = 24;
+/** Frames drawn in the first moments after start are ignored: they share the load. */
+const SLOW_GRACE_MS = 1000;
+
+/**
+ * Deviation 5: whether WebGL runs on the CPU (SwiftShader, llvmpipe and the
+ * like), as it does when a visitor turns off graphics acceleration. A context
+ * that refuses a major performance caveat is the browser's own answer; the
+ * renderer string backs it up where that check is not honoured.
+ */
+function rendersInSoftware(gl: WebGLRenderingContext | WebGL2RenderingContext): boolean {
+  const probe = document.createElement("canvas").getContext("webgl", { failIfMajorPerformanceCaveat: true });
+  if (!probe) return true;
+  probe.getExtension("WEBGL_lose_context")?.loseContext();
+  const debug = gl.getExtension("WEBGL_debug_renderer_info");
+  const name = debug ? String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)) : "";
+  return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+}
 
 /**
  * Compiles and links a shader pair without blocking the main thread, then
@@ -333,6 +365,8 @@ export default function FaultyTerminal({
   const containerRef = useRef<HTMLDivElement>(null);
   const programRef = useRef<Program>(null);
   const rendererRef = useRef<Renderer>(null);
+  /** Redraws a frozen backdrop; null while it animates, since the loop redraws. */
+  const redrawStillRef = useRef<(() => void) | null>(null);
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
   const smoothMouseRef = useRef({ x: 0.5, y: 0.5 });
   const frozenTimeRef = useRef(0);
@@ -364,6 +398,7 @@ export default function FaultyTerminal({
     if (!program) return;
     program.uniforms.uTint.value = new Color(tintVec[0], tintVec[1], tintVec[2]);
     program.uniforms.uBrightness.value = brightness;
+    redrawStillRef.current?.();
   }, [tintVec, brightness]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -379,7 +414,13 @@ export default function FaultyTerminal({
     const ctn = containerRef.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({ dpr, alpha: true, premultipliedAlpha: false });
+    // Deviation 6.
+    let renderer: Renderer;
+    try {
+      renderer = new Renderer({ dpr, alpha: true, premultipliedAlpha: false });
+    } catch {
+      return;
+    }
     rendererRef.current = renderer;
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);
@@ -427,6 +468,14 @@ export default function FaultyTerminal({
 
       const mesh = new Mesh(gl, { geometry, program });
 
+      // Deviation 5: a still frame, fully faded in, at the current time.
+      let frozen = false;
+      const drawStill = () => {
+        program.uniforms.uPageLoadProgress.value = 1;
+        program.uniforms.iTime.value = frozenTimeRef.current || timeOffsetRef.current * timeScale;
+        renderer.render({ scene: mesh });
+      };
+
       function resize() {
         if (!ctn || !renderer) return;
         renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
@@ -435,6 +484,8 @@ export default function FaultyTerminal({
           gl.canvas.height,
           gl.canvas.width / gl.canvas.height
         );
+        // Resizing clears the canvas, and a frozen backdrop has no loop to refill it.
+        if (frozen) drawStill();
       }
 
       const resizeObserver = new ResizeObserver(() => resize());
@@ -444,8 +495,22 @@ export default function FaultyTerminal({
       // Deviation 4: capped frame rate, and no frames while off screen.
       let running = false;
       let lastFrame = -Infinity;
+      // Deviation 5: gaps between animation frames, checked in windows.
+      let previousTick = 0;
+      let watchFrom = 0;
+      const gaps: number[] = [];
       const update = (t: number) => {
         if (!running) return;
+        if (previousTick > 0 && t >= watchFrom) gaps.push(t - previousTick);
+        previousTick = t;
+        if (gaps.length >= SLOW_WINDOW) {
+          const median = gaps.sort((a, b) => a - b)[SLOW_WINDOW >> 1];
+          gaps.length = 0;
+          if (median > SLOW_FRAME_MS) {
+            freeze();
+            return;
+          }
+        }
         rafRef.current = requestAnimationFrame(update);
         if (t - lastFrame < FRAME_INTERVAL_MS) return;
         lastFrame = t;
@@ -484,22 +549,36 @@ export default function FaultyTerminal({
         renderer.render({ scene: mesh });
       };
       const play = () => {
-        if (running) return;
+        if (running || frozen) return;
         running = true;
+        // A gap spent off screen or in a background tab is not a slow frame.
+        previousTick = 0;
+        gaps.length = 0;
+        watchFrom = performance.now() + SLOW_GRACE_MS;
         rafRef.current = requestAnimationFrame(update);
       };
       const halt = () => {
         running = false;
         cancelAnimationFrame(rafRef.current);
       };
+      const freeze = () => {
+        frozen = true;
+        halt();
+        // Marks the still frame for scripts/theme-audit.mjs and DevTools.
+        ctn.dataset.frozen = "";
+        drawStill();
+        redrawStillRef.current = drawStill;
+      };
       const visibility = new IntersectionObserver(([entry]) => (entry.isIntersecting ? play() : halt()));
       visibility.observe(ctn);
       ctn.appendChild(gl.canvas);
+      if (pause || rendersInSoftware(gl)) freeze();
 
       if (mouseReact) ctn.addEventListener("mousemove", handleMouseMove);
 
       stopScene = () => {
         halt();
+        redrawStillRef.current = null;
         visibility.disconnect();
         resizeObserver.disconnect();
         if (mouseReact) ctn.removeEventListener("mousemove", handleMouseMove);

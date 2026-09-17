@@ -1,421 +1,185 @@
-// Vendored from React Bits — https://reactbits.dev/text-animations/decrypted-text
-// Variant: TS + Tailwind. Changed from upstream:
+// Adapted from React Bits — https://reactbits.dev/text-animations/decrypted-text
+// Rewritten from upstream; what is left is its look: characters resolve left to
+// right while the rest of the text churns through random glyphs.
 //   1. "use client" directive.
 //   2. Scrambling is skipped under prefers-reduced-motion — the text just
 //      renders plain instead of thrashing through random glyphs.
-//   3. Added `onComplete` and whitespace preservation (see inline comments).
-//   4. A11Y FIX: the sr-only node now holds the real `text`. Upstream put
-//      `displayText` there, so screen readers announced the scrambled
-//      characters instead of the word.
+//   3. `onComplete`, and whitespace survives the scramble, so multi-line code
+//      keeps its shape.
+//   4. A11Y FIX: the sr-only node holds the real `text`. Upstream put the
+//      scrambled string there, so screen readers announced noise.
 //   5. No layout shift while scrambling. Scrambled glyphs have different
 //      widths, so upstream re-wrapped the text on every tick and pushed
-//      everything below it around (measured CLS 8–18 on a phone). Now each
-//      original character stays in the flow, transparent, and its scrambled
-//      stand-in is drawn over it absolutely, so line breaks never change. Once
-//      settled — and in the server HTML — the text renders as one plain span
-//      instead of one span per character.
+//      everything below it around (measured CLS 8–18 on a phone). Each original
+//      character stays in the flow, hidden, and its scrambled stand-in is
+//      drawn over it absolutely, so line breaks never change. Once settled —
+//      and in the server HTML — the text renders as one plain span.
+//   6. Timed by the clock, written straight to the DOM. Upstream revealed one
+//      character per setInterval tick and re-rendered every character through
+//      React on each one. On a slow phone a tick took far longer than `speed`,
+//      so the hero lead took 15–20 s to resolve with the main thread pinned the
+//      whole time. Now progress follows elapsed time, so the reveal takes
+//      text.length × speed ms on any device, and each frame only rewrites text
+//      nodes. React renders twice: once to lay out the characters, once to
+//      settle. A device that stalls for a quarter second mid-reveal skips to
+//      the settled text.
+//      Per frame, the browser's paint and layout outweighed the script (a
+//      mobile trace: 663 ms paint and 641 ms layout against ~100 ms of script),
+//      so the frame work is kept to what is visible: the placeholder characters
+//      are visibility:hidden rather than transparent, so they are not painted;
+//      revealing a character swaps visibility instead of text, which needs no
+//      layout; and the glyphs are re-rolled at most 30 times a second.
+//   7. Only the modes this site uses: reveal on first view, from the start.
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HTMLAttributes } from "react";
 
 interface DecryptedTextProps extends HTMLAttributes<HTMLSpanElement> {
   text: string;
+  /** Milliseconds per revealed character. */
   speed?: number;
-  maxIterations?: number;
-  sequential?: boolean;
-  revealDirection?: "start" | "end" | "center";
+  /** Scramble with the text's own characters instead of `characters`. */
   useOriginalCharsOnly?: boolean;
   characters?: string;
   className?: string;
   encryptedClassName?: string;
   parentClassName?: string;
-  animateOn?: "view" | "hover" | "inViewHover" | "click";
-  clickMode?: "once" | "toggle";
-  /** Fired when a forward reveal finishes. Not in upstream. */
+  /** Fired when the reveal finishes. */
   onComplete?: () => void;
 }
 
-type Direction = "forward" | "reverse";
+/** A gap between frames this long means the device is choking; finish at once. */
+const STALL_MS = 250;
+
+const WHITESPACE = /\s/;
+
+/** Fastest re-roll of the scrambled glyphs, in milliseconds (30 per second). */
+const MIN_REROLL_MS = 33;
 
 export default function DecryptedText({
   text,
   speed = 50,
-  maxIterations = 10,
-  sequential = false,
-  revealDirection = "start",
   useOriginalCharsOnly = false,
   characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+",
   className = "",
   parentClassName = "",
   encryptedClassName = "",
-  animateOn = "hover",
-  clickMode = "once",
   onComplete,
   ...props
 }: DecryptedTextProps) {
-  const [displayText, setDisplayText] = useState<string>(text);
-  const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
-  const [hasAnimated, setHasAnimated] = useState<boolean>(false);
-  const [isDecrypted, setIsDecrypted] = useState<boolean>(animateOn !== "click");
-  const [direction, setDirection] = useState<Direction>("forward");
-
+  const [scrambling, setScrambling] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
-  const orderRef = useRef<number[]>([]);
-  const pointerRef = useRef<number>(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const ranForwardRef = useRef(false);
+  const glyphRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const holderRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  // onComplete is dispatched here rather than from inside the setRevealedIndices
-  // updater. Updaters run during React's render phase, so calling a parent's
-  // setState from one throws "Cannot update a component while rendering a
-  // different component". ranForwardRef keeps it from firing on mount, where
-  // isDecrypted already starts true for every non-click mode.
-  useEffect(() => {
-    if (!ranForwardRef.current || isAnimating || !isDecrypted) return;
-    ranForwardRef.current = false;
-    onCompleteRef.current?.();
-  }, [isAnimating, isDecrypted]);
-
-  const availableChars = useMemo<string[]>(() => {
-    return useOriginalCharsOnly
-      ? Array.from(new Set(text.split(""))).filter((char) => char !== " ")
-      : characters.split("");
-  }, [useOriginalCharsOnly, text, characters]);
-
-  const shuffleText = useCallback(
-    (originalText: string, currentRevealed: Set<number>) => {
-      return originalText
-        .split("")
-        .map((char, i) => {
-          // Upstream only preserved " ". Newlines and tabs have to survive too,
-          // otherwise a multi-line block collapses into noise while animating.
-          if (/\s/.test(char)) return char;
-          if (currentRevealed.has(i)) return originalText[i];
-          return availableChars[Math.floor(Math.random() * availableChars.length)];
-        })
-        .join("");
-    },
-    [availableChars]
+  const pool = useMemo(
+    () =>
+      useOriginalCharsOnly
+        ? Array.from(new Set(text.split(""))).filter((char) => !WHITESPACE.test(char))
+        : characters.split(""),
+    [useOriginalCharsOnly, text, characters]
   );
 
-  const computeOrder = useCallback(
-    (len: number): number[] => {
-      const order: number[] = [];
-      if (len <= 0) return order;
-      if (revealDirection === "start") {
-        for (let i = 0; i < len; i++) order.push(i);
-        return order;
-      }
-      if (revealDirection === "end") {
-        for (let i = len - 1; i >= 0; i--) order.push(i);
-        return order;
-      }
-      const middle = Math.floor(len / 2);
-      let offset = 0;
-      while (order.length < len) {
-        if (offset % 2 === 0) {
-          const idx = middle + offset / 2;
-          if (idx >= 0 && idx < len) order.push(idx);
-        } else {
-          const idx = middle - Math.ceil(offset / 2);
-          if (idx >= 0 && idx < len) order.push(idx);
-        }
-        offset++;
-      }
-      return order.slice(0, len);
-    },
-    [revealDirection]
-  );
-
-  const fillAllIndices = useCallback((): Set<number> => {
-    const s = new Set<number>();
-    for (let i = 0; i < text.length; i++) s.add(i);
-    return s;
+  // Start on first view.
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        setScrambling(true);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [text]);
 
-  const removeRandomIndices = useCallback((set: Set<number>, count: number): Set<number> => {
-    const arr = Array.from(set);
-    for (let i = 0; i < count && arr.length > 0; i++) {
-      const idx = Math.floor(Math.random() * arr.length);
-      arr.splice(idx, 1);
-    }
-    return new Set(arr);
-  }, []);
-
-  const encryptInstantly = useCallback(() => {
-    const emptySet = new Set<number>();
-    setRevealedIndices(emptySet);
-    setDisplayText(shuffleText(text, emptySet));
-    setIsDecrypted(false);
-  }, [text, shuffleText]);
-
-  const triggerDecrypt = useCallback(() => {
-    if (sequential) {
-      orderRef.current = computeOrder(text.length);
-      pointerRef.current = 0;
-      setRevealedIndices(new Set());
-    } else {
-      setRevealedIndices(new Set());
-    }
-    setDirection("forward");
-    ranForwardRef.current = true;
-    setIsAnimating(true);
-  }, [sequential, computeOrder, text.length]);
-
-  const triggerReverse = useCallback(() => {
-    if (sequential) {
-      orderRef.current = computeOrder(text.length).slice().reverse();
-      pointerRef.current = 0;
-      setRevealedIndices(fillAllIndices());
-      setDisplayText(shuffleText(text, fillAllIndices()));
-    } else {
-      setRevealedIndices(fillAllIndices());
-      setDisplayText(shuffleText(text, fillAllIndices()));
-    }
-    setDirection("reverse");
-    setIsAnimating(true);
-  }, [sequential, computeOrder, fillAllIndices, shuffleText, text]);
-
+  // Drive the reveal once the per-character spans are in the DOM.
   useEffect(() => {
-    if (!isAnimating) return;
+    if (!scrambling) return;
+    const glyphs = glyphRefs.current;
+    const holders = holderRefs.current;
+    const reroll = Math.max(speed, MIN_REROLL_MS);
+    const random = () => pool[Math.floor(Math.random() * pool.length)] ?? "";
+    let revealed = 0;
+    let lastScramble = -Infinity;
+    let lastFrame = 0;
+    let frame = 0;
+    const start = performance.now();
 
-    let currentIteration = 0;
+    const finish = () => {
+      setScrambling(false);
+      onCompleteRef.current?.();
+    };
 
-    const getNextIndex = (revealedSet: Set<number>): number => {
-      const textLength = text.length;
-      switch (revealDirection) {
-        case "start":
-          return revealedSet.size;
-        case "end":
-          return textLength - 1 - revealedSet.size;
-        case "center": {
-          const middle = Math.floor(textLength / 2);
-          const offset = Math.floor(revealedSet.size / 2);
-          const nextIndex = revealedSet.size % 2 === 0 ? middle + offset : middle - offset - 1;
+    const tick = (now: number) => {
+      const stalled = lastFrame > 0 && now - lastFrame > STALL_MS;
+      lastFrame = now;
+      const target = Math.min(text.length, Math.floor((now - start) / speed));
+      if (stalled || target >= text.length) return finish();
 
-          if (nextIndex >= 0 && nextIndex < textLength && !revealedSet.has(nextIndex)) {
-            return nextIndex;
-          }
-          for (let i = 0; i < textLength; i++) {
-            if (!revealedSet.has(i)) return i;
-          }
-          return 0;
-        }
-        default:
-          return revealedSet.size;
+      // Revealing shows the real character and hides its stand-in: a style
+      // change only, so the line needs no layout.
+      for (; revealed < target; revealed++) {
+        const holder = holders[revealed];
+        const glyph = glyphs[revealed];
+        if (holder) holder.className = className;
+        if (glyph) glyph.className = "absolute top-0 left-0 invisible";
       }
-    };
-
-    intervalRef.current = setInterval(() => {
-      setRevealedIndices((prevRevealed) => {
-        if (sequential) {
-          if (direction === "forward") {
-            if (prevRevealed.size < text.length) {
-              const nextIndex = getNextIndex(prevRevealed);
-              const newRevealed = new Set(prevRevealed);
-              newRevealed.add(nextIndex);
-              setDisplayText(shuffleText(text, newRevealed));
-              return newRevealed;
-            } else {
-              clearInterval(intervalRef.current ?? undefined);
-              setIsAnimating(false);
-              setIsDecrypted(true);
-              return prevRevealed;
-            }
-          }
-          if (direction === "reverse") {
-            if (pointerRef.current < orderRef.current.length) {
-              const idxToRemove = orderRef.current[pointerRef.current++];
-              const newRevealed = new Set(prevRevealed);
-              newRevealed.delete(idxToRemove);
-              setDisplayText(shuffleText(text, newRevealed));
-              if (newRevealed.size === 0) {
-                clearInterval(intervalRef.current ?? undefined);
-                setIsAnimating(false);
-                setIsDecrypted(false);
-              }
-              return newRevealed;
-            } else {
-              clearInterval(intervalRef.current ?? undefined);
-              setIsAnimating(false);
-              setIsDecrypted(false);
-              return prevRevealed;
-            }
-          }
-        } else {
-          if (direction === "forward") {
-            setDisplayText(shuffleText(text, prevRevealed));
-            currentIteration++;
-            if (currentIteration >= maxIterations) {
-              clearInterval(intervalRef.current ?? undefined);
-              setIsAnimating(false);
-              setDisplayText(text);
-              setIsDecrypted(true);
-            }
-            return prevRevealed;
-          }
-
-          if (direction === "reverse") {
-            let currentSet = prevRevealed;
-            if (currentSet.size === 0) {
-              currentSet = fillAllIndices();
-            }
-            const removeCount = Math.max(1, Math.ceil(text.length / Math.max(1, maxIterations)));
-            const nextSet = removeRandomIndices(currentSet, removeCount);
-            setDisplayText(shuffleText(text, nextSet));
-            currentIteration++;
-            if (nextSet.size === 0 || currentIteration >= maxIterations) {
-              clearInterval(intervalRef.current ?? undefined);
-              setIsAnimating(false);
-              setIsDecrypted(false);
-              setDisplayText(shuffleText(text, new Set()));
-              return new Set();
-            }
-            return nextSet;
-          }
+      // Re-roll the unrevealed glyphs every `speed` ms, capped at 30 per second.
+      if (now - lastScramble >= reroll) {
+        lastScramble = now;
+        for (let i = revealed; i < text.length; i++) {
+          const glyph = glyphs[i];
+          if (glyph && !WHITESPACE.test(text[i])) glyph.textContent = random();
         }
-        return prevRevealed;
-      });
-    }, speed);
-    return () => clearInterval(intervalRef.current ?? undefined);
-  }, [
-    isAnimating,
-    text,
-    speed,
-    maxIterations,
-    sequential,
-    revealDirection,
-    shuffleText,
-    direction,
-    fillAllIndices,
-    removeRandomIndices,
-    characters,
-    useOriginalCharsOnly
-  ]);
-
-  const handleClick = () => {
-    if (animateOn !== "click") return;
-
-    if (clickMode === "once") {
-      if (isDecrypted) return;
-      setDirection("forward");
-      triggerDecrypt();
-    }
-
-    if (clickMode === "toggle") {
-      if (isDecrypted) {
-        triggerReverse();
-      } else {
-        setDirection("forward");
-        triggerDecrypt();
       }
-    }
-  };
-
-  const triggerHoverDecrypt = useCallback(() => {
-    if (isAnimating) return;
-
-    setRevealedIndices(new Set());
-    setIsDecrypted(false);
-    setDisplayText(text);
-    setDirection("forward");
-    ranForwardRef.current = true;
-    setIsAnimating(true);
-  }, [isAnimating, text]);
-
-  const resetToPlainText = useCallback(() => {
-    clearInterval(intervalRef.current ?? undefined);
-    setIsAnimating(false);
-    setRevealedIndices(new Set());
-    setDisplayText(text);
-    setIsDecrypted(true);
-    setDirection("forward");
-  }, [text]);
-
-  useEffect(() => {
-    if (animateOn !== "view" && animateOn !== "inViewHover") return;
-    // Scrambling is pure decoration; skip it entirely when motion is reduced.
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-
-    const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && !hasAnimated) {
-          triggerDecrypt();
-          setHasAnimated(true);
-        }
-      });
+      frame = requestAnimationFrame(tick);
     };
-
-    const observer = new IntersectionObserver(observerCallback, {
-      root: null,
-      rootMargin: "0px",
-      threshold: 0.1
-    });
-    const currentRef = containerRef.current;
-    if (currentRef) observer.observe(currentRef);
-
-    return () => {
-      if (currentRef) observer.unobserve(currentRef);
-    };
-  }, [animateOn, hasAnimated, triggerDecrypt]);
-
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- Upstream React Bits
-       pattern: this effect resyncs the scramble buffer when `text` or the
-       trigger mode changes. It is a one-shot sync, not a render loop, and
-       rewriting it would mean restructuring the whole animation state machine. */
-    if (animateOn === "click") {
-      encryptInstantly();
-    } else {
-      setDisplayText(text);
-      setIsDecrypted(true);
-    }
-    setRevealedIndices(new Set());
-    setDirection("forward");
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [animateOn, text, encryptInstantly]);
-
-  const animateProps =
-    animateOn === "hover" || animateOn === "inViewHover"
-      ? {
-          onMouseEnter: triggerHoverDecrypt,
-          onMouseLeave: resetToPlainText
-        }
-      : animateOn === "click"
-        ? { onClick: handleClick }
-        : {};
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [scrambling, text, speed, pool, className]);
 
   return (
     <span
       ref={containerRef}
       className={`inline-block whitespace-pre-wrap ${parentClassName}`}
-      {...animateProps}
       {...props}>
       <span className="sr-only">{text}</span>
 
-      {!isAnimating && isDecrypted ? (
-        <span aria-hidden="true" className={className}>
-          {text}
-        </span>
-      ) : (
+      {scrambling ? (
         <span aria-hidden="true">
-          {displayText.split("").map((char, index) => (
+          {text.split("").map((char, index) => (
             // Deviation 5: the real character holds the layout; the scrambled
             // one is painted over it and cannot move anything.
             <span key={index} className="relative">
-              <span className="text-transparent">{text[index] ?? char}</span>
               <span
-                className={`absolute top-0 left-0 ${revealedIndices.has(index) ? className : encryptedClassName}`}>
+                ref={(el) => {
+                  holderRefs.current[index] = el;
+                }}
+                className="invisible">
+                {char}
+              </span>
+              <span
+                ref={(el) => {
+                  glyphRefs.current[index] = el;
+                }}
+                className={`absolute top-0 left-0 ${encryptedClassName}`}>
                 {char}
               </span>
             </span>
           ))}
+        </span>
+      ) : (
+        <span aria-hidden="true" className={className}>
+          {text}
         </span>
       )}
     </span>
