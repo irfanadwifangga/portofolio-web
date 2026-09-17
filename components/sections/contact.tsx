@@ -1,20 +1,20 @@
 import { SectionEntrance } from "@/components/section-entrance";
 import { Reveal } from "@/components/reveal";
 import { ContactForm } from "@/components/contact-form";
-import { Github, Linkedin } from "@thesvg/react";
 import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/locales";
+import { markIcon } from "@/lib/tech-icons";
 
 const PROFILES = [
   {
     label: "LinkedIn",
     href: "https://www.linkedin.com/in/irfanadwifangga",
-    Icon: Linkedin
+    Icon: markIcon("linkedin")
   },
   {
     label: "GitHub",
     href: "https://github.com/irfanadwifangga",
-    Icon: Github
+    Icon: markIcon("github")
   }
 ];
 
@@ -66,7 +66,7 @@ export function Contact({ locale }: { locale: Locale }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex min-h-11 items-center gap-2 rounded-md px-3 font-mono text-sm text-muted transition-colors duration-150 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none">
-                <Icon width={16} height={16} aria-hidden className="shrink-0 [&_*]:fill-current" />
+                <Icon width={16} height={16} aria-hidden className="shrink-0" />
                 {label}
                 <ExternalArrow />
                 <span className="sr-only">{dictionary.common.newTab}</span>

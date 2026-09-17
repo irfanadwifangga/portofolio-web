@@ -1,28 +1,9 @@
 import type { ComponentType, SVGProps } from "react";
-import {
-  Javascript,
-  Typescript,
-  Java,
-  Nextjs,
-  Nodejs,
-  Django,
-  Celery,
-  Htmx,
-  Postgresql,
-  Supabase,
-  Redis,
-  Docker,
-  Git,
-  Github,
-  Python,
-  Authdotjs,
-  Aws,
-  Heroui,
-  GoogleCloud
-} from "@thesvg/react";
-// Theme-aware versions of marks that fail on the light page.
+// Every icon draws from the page's mark sprite (lib/marks.tsx); the themed
+// marks switch artwork on the light page.
 import {
   GoMark,
+  markIcon,
   PhpMark,
   PostmanMark,
   PrismaMark,
@@ -51,54 +32,54 @@ export const techGroups: TechGroup[] = [
   {
     category: { en: "Languages", id: "Bahasa pemrograman" },
     items: [
-      { name: "JavaScript", Icon: Javascript },
-      { name: "TypeScript", Icon: Typescript },
+      { name: "JavaScript", Icon: markIcon("javascript") },
+      { name: "TypeScript", Icon: markIcon("typescript") },
       { name: "Go", Icon: GoMark },
-      { name: "Java", Icon: Java },
-      { name: "Python", Icon: Python },
+      { name: "Java", Icon: markIcon("java") },
+      { name: "Python", Icon: markIcon("python") },
       { name: "PHP", Icon: PhpMark }
     ]
   },
   {
     category: { en: "Frontend", id: "Frontend" },
     items: [
-      { name: "Next.js", Icon: Nextjs },
+      { name: "Next.js", Icon: markIcon("nextjs") },
       { name: "React", Icon: ReactMark },
       { name: "Tailwind CSS", Icon: TailwindMark },
-      { name: "HeroUI", Icon: Heroui }
+      { name: "HeroUI", Icon: markIcon("heroui") }
     ]
   },
   {
     category: { en: "Backend", id: "Backend" },
     items: [
-      { name: "Node.js", Icon: Nodejs },
-      { name: "Django REST", Icon: Django },
+      { name: "Node.js", Icon: markIcon("nodejs") },
+      { name: "Django REST", Icon: markIcon("django") },
       { name: "Spring", Icon: SpringMark },
       { name: "Prisma", Icon: PrismaMark },
-      { name: "NextAuth", Icon: Authdotjs },
-      { name: "Celery", Icon: Celery },
-      { name: "HTMX", Icon: Htmx }
+      { name: "NextAuth", Icon: markIcon("authjs") },
+      { name: "Celery", Icon: markIcon("celery") },
+      { name: "HTMX", Icon: markIcon("htmx") }
     ]
   },
   {
     category: { en: "Database", id: "Basis data" },
     items: [
-      { name: "PostgreSQL", Icon: Postgresql },
-      { name: "Supabase", Icon: Supabase },
-      { name: "Redis", Icon: Redis },
+      { name: "PostgreSQL", Icon: markIcon("postgresql") },
+      { name: "Supabase", Icon: markIcon("supabase") },
+      { name: "Redis", Icon: markIcon("redis") },
       { name: "Upstash", Icon: UpstashMark }
     ]
   },
   {
     category: { en: "Tools", id: "Tools" },
     items: [
-      { name: "Docker", Icon: Docker },
-      { name: "Git", Icon: Git },
-      { name: "GitHub", Icon: Github },
+      { name: "Docker", Icon: markIcon("docker") },
+      { name: "Git", Icon: markIcon("git") },
+      { name: "GitHub", Icon: markIcon("github") },
       { name: "Vercel", Icon: VercelMark },
-      { name: "AWS", Icon: Aws },
+      { name: "AWS", Icon: markIcon("aws") },
       { name: "Postman", Icon: PostmanMark },
-      { name: "Google Cloud Console", Icon: GoogleCloud }
+      { name: "Google Cloud Console", Icon: markIcon("google-cloud") }
     ]
   }
 ];

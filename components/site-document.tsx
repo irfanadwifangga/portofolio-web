@@ -22,6 +22,8 @@ export function SiteDocument({ locale, children }: { locale: Locale; children: R
       lang={locale}
       className={`${FONT_VARIABLES} h-full antialiased`}
       suppressHydrationWarning>
+      {/* A root document in the App Router, not a pages/ page: next/head does not apply. */}
+      {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
         {/* Sets data-theme before first paint, so the wrong theme never flashes.
             suppressHydrationWarning on <html> covers that attribute, which

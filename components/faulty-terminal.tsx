@@ -8,10 +8,65 @@
 //      Upstream lists them as dependencies of the effect that creates the WebGL
 //      context, so changing either rebuilt the context, flickered, and replayed
 //      the page-load animation — which would happen on every theme switch.
+//   3. The shaders are compiled and linked in the background first
+//      (KHR_parallel_shader_compile, polled once per frame), and the scene is
+//      only built once that has finished. OGL's Program asks for the link status
+//      synchronously, and on a cold mobile load that single call kept the main
+//      thread waiting ~2.1 s for the GPU process (measured with a DevTools
+//      trace). With the program already in the browser's cache, OGL's own link
+//      returns at once.
+//   4. Draws at most ~30 frames a second, and not at all while the backdrop is
+//      off screen. The glitch drifts slowly (timeScale 0.28), so 30 fps reads
+//      the same, and upstream kept rendering a full-viewport shader at the
+//      display's refresh rate for as long as the page stayed open.
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 
 type Vec2 = [number, number];
+
+/** Deviation 4: ~30 fps, with a little slack so a 60 Hz display hits every other frame. */
+const FRAME_INTERVAL_MS = 1000 / 30 - 2;
+
+/**
+ * Compiles and links a shader pair without blocking the main thread, then
+ * discards the result: its only purpose is to fill the browser's program cache
+ * before OGL links the same sources synchronously. Resolves straight away when
+ * the extension is unavailable, which is exactly the old behaviour.
+ */
+function compileInBackground(
+  gl: WebGLRenderingContext | WebGL2RenderingContext,
+  vertex: string,
+  fragment: string,
+  isCancelled: () => boolean
+): Promise<void> {
+  const ext = gl.getExtension("KHR_parallel_shader_compile");
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  const program = gl.createProgram();
+  if (!ext || !vs || !fs || !program) return Promise.resolve();
+
+  gl.shaderSource(vs, vertex);
+  gl.compileShader(vs);
+  gl.shaderSource(fs, fragment);
+  gl.compileShader(fs);
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+
+  return new Promise((resolve) => {
+    const poll = () => {
+      if (!isCancelled() && !gl.getProgramParameter(program, ext.COMPLETION_STATUS_KHR)) {
+        requestAnimationFrame(poll);
+        return;
+      }
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      resolve();
+    };
+    requestAnimationFrame(poll);
+  });
+}
 
 export interface FaultyTerminalProps extends React.HTMLAttributes<HTMLDivElement> {
   scale?: number;
@@ -331,100 +386,132 @@ export default function FaultyTerminal({
 
     const geometry = new Triangle(gl);
 
-    const program = new Program(gl, {
-      vertex: vertexShader,
-      fragment: fragmentShader,
-      uniforms: {
-        iTime: { value: 0 },
-        iResolution: {
-          value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height)
-        },
-        uScale: { value: scale },
+    // Deviation 3: build the scene only once the shaders are ready.
+    let cancelled = false;
+    let stopScene = () => {};
 
-        uGridMul: { value: new Float32Array(gridMul) },
-        uDigitSize: { value: digitSize },
-        uScanlineIntensity: { value: scanlineIntensity },
-        uGlitchAmount: { value: glitchAmount },
-        uFlickerAmount: { value: flickerAmount },
-        uNoiseAmp: { value: noiseAmp },
-        uChromaticAberration: { value: chromaticAberration },
-        uDither: { value: ditherValue },
-        uCurvature: { value: curvature },
-        uTint: { value: new Color(tintRef.current[0], tintRef.current[1], tintRef.current[2]) },
-        uMouse: {
-          value: new Float32Array([smoothMouseRef.current.x, smoothMouseRef.current.y])
-        },
-        uMouseStrength: { value: mouseStrength },
-        uUseMouse: { value: mouseReact ? 1 : 0 },
-        uPageLoadProgress: { value: pageLoadAnimation ? 0 : 1 },
-        uUsePageLoadAnimation: { value: pageLoadAnimation ? 1 : 0 },
-        uBrightness: { value: brightnessRef.current }
-      }
-    });
-    programRef.current = program;
+    const startScene = () => {
+      if (cancelled) return;
 
-    const mesh = new Mesh(gl, { geometry, program });
+      const program = new Program(gl, {
+        vertex: vertexShader,
+        fragment: fragmentShader,
+        uniforms: {
+          iTime: { value: 0 },
+          iResolution: {
+            value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height)
+          },
+          uScale: { value: scale },
 
-    function resize() {
-      if (!ctn || !renderer) return;
-      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
-      program.uniforms.iResolution.value = new Color(
-        gl.canvas.width,
-        gl.canvas.height,
-        gl.canvas.width / gl.canvas.height
-      );
-    }
+          uGridMul: { value: new Float32Array(gridMul) },
+          uDigitSize: { value: digitSize },
+          uScanlineIntensity: { value: scanlineIntensity },
+          uGlitchAmount: { value: glitchAmount },
+          uFlickerAmount: { value: flickerAmount },
+          uNoiseAmp: { value: noiseAmp },
+          uChromaticAberration: { value: chromaticAberration },
+          uDither: { value: ditherValue },
+          uCurvature: { value: curvature },
+          uTint: { value: new Color(tintRef.current[0], tintRef.current[1], tintRef.current[2]) },
+          uMouse: {
+            value: new Float32Array([smoothMouseRef.current.x, smoothMouseRef.current.y])
+          },
+          uMouseStrength: { value: mouseStrength },
+          uUseMouse: { value: mouseReact ? 1 : 0 },
+          uPageLoadProgress: { value: pageLoadAnimation ? 0 : 1 },
+          uUsePageLoadAnimation: { value: pageLoadAnimation ? 1 : 0 },
+          uBrightness: { value: brightnessRef.current }
+        }
+      });
+      programRef.current = program;
 
-    const resizeObserver = new ResizeObserver(() => resize());
-    resizeObserver.observe(ctn);
-    resize();
+      const mesh = new Mesh(gl, { geometry, program });
 
-    const update = (t: number) => {
-      rafRef.current = requestAnimationFrame(update);
-
-      if (pageLoadAnimation && loadAnimationStartRef.current === 0) {
-        loadAnimationStartRef.current = t;
+      function resize() {
+        if (!ctn || !renderer) return;
+        renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+        program.uniforms.iResolution.value = new Color(
+          gl.canvas.width,
+          gl.canvas.height,
+          gl.canvas.width / gl.canvas.height
+        );
       }
 
-      if (!pause) {
-        const elapsed = (t * 0.001 + timeOffsetRef.current) * timeScale;
-        program.uniforms.iTime.value = elapsed;
-        frozenTimeRef.current = elapsed;
-      } else {
-        program.uniforms.iTime.value = frozenTimeRef.current;
-      }
+      const resizeObserver = new ResizeObserver(() => resize());
+      resizeObserver.observe(ctn);
+      resize();
 
-      if (pageLoadAnimation && loadAnimationStartRef.current > 0) {
-        const animationDuration = 2000;
-        const animationElapsed = t - loadAnimationStartRef.current;
-        const progress = Math.min(animationElapsed / animationDuration, 1);
-        program.uniforms.uPageLoadProgress.value = progress;
-      }
+      // Deviation 4: capped frame rate, and no frames while off screen.
+      let running = false;
+      let lastFrame = -Infinity;
+      const update = (t: number) => {
+        if (!running) return;
+        rafRef.current = requestAnimationFrame(update);
+        if (t - lastFrame < FRAME_INTERVAL_MS) return;
+        lastFrame = t;
 
-      if (mouseReact) {
-        const dampingFactor = 0.08;
-        const smoothMouse = smoothMouseRef.current;
-        const mouse = mouseRef.current;
-        smoothMouse.x += (mouse.x - smoothMouse.x) * dampingFactor;
-        smoothMouse.y += (mouse.y - smoothMouse.y) * dampingFactor;
+        if (pageLoadAnimation && loadAnimationStartRef.current === 0) {
+          loadAnimationStartRef.current = t;
+        }
 
-        const mouseUniform = program.uniforms.uMouse.value as Float32Array;
-        mouseUniform[0] = smoothMouse.x;
-        mouseUniform[1] = smoothMouse.y;
-      }
+        if (!pause) {
+          const elapsed = (t * 0.001 + timeOffsetRef.current) * timeScale;
+          program.uniforms.iTime.value = elapsed;
+          frozenTimeRef.current = elapsed;
+        } else {
+          program.uniforms.iTime.value = frozenTimeRef.current;
+        }
 
-      renderer.render({ scene: mesh });
+        if (pageLoadAnimation && loadAnimationStartRef.current > 0) {
+          const animationDuration = 2000;
+          const animationElapsed = t - loadAnimationStartRef.current;
+          const progress = Math.min(animationElapsed / animationDuration, 1);
+          program.uniforms.uPageLoadProgress.value = progress;
+        }
+
+        if (mouseReact) {
+          const dampingFactor = 0.08;
+          const smoothMouse = smoothMouseRef.current;
+          const mouse = mouseRef.current;
+          smoothMouse.x += (mouse.x - smoothMouse.x) * dampingFactor;
+          smoothMouse.y += (mouse.y - smoothMouse.y) * dampingFactor;
+
+          const mouseUniform = program.uniforms.uMouse.value as Float32Array;
+          mouseUniform[0] = smoothMouse.x;
+          mouseUniform[1] = smoothMouse.y;
+        }
+
+        renderer.render({ scene: mesh });
+      };
+      const play = () => {
+        if (running) return;
+        running = true;
+        rafRef.current = requestAnimationFrame(update);
+      };
+      const halt = () => {
+        running = false;
+        cancelAnimationFrame(rafRef.current);
+      };
+      const visibility = new IntersectionObserver(([entry]) => (entry.isIntersecting ? play() : halt()));
+      visibility.observe(ctn);
+      ctn.appendChild(gl.canvas);
+
+      if (mouseReact) ctn.addEventListener("mousemove", handleMouseMove);
+
+      stopScene = () => {
+        halt();
+        visibility.disconnect();
+        resizeObserver.disconnect();
+        if (mouseReact) ctn.removeEventListener("mousemove", handleMouseMove);
+        if (gl.canvas.parentElement === ctn) ctn.removeChild(gl.canvas);
+      };
     };
-    rafRef.current = requestAnimationFrame(update);
-    ctn.appendChild(gl.canvas);
 
-    if (mouseReact) ctn.addEventListener("mousemove", handleMouseMove);
+    compileInBackground(gl, vertexShader, fragmentShader, () => cancelled).then(startScene);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
-      resizeObserver.disconnect();
-      if (mouseReact) ctn.removeEventListener("mousemove", handleMouseMove);
-      if (gl.canvas.parentElement === ctn) ctn.removeChild(gl.canvas);
+      cancelled = true;
+      stopScene();
       gl.getExtension("WEBGL_lose_context")?.loseContext();
       loadAnimationStartRef.current = 0;
       timeOffsetRef.current = Math.random() * 100;

@@ -8,6 +8,7 @@ import { TechStack } from "@/components/sections/tech-stack";
 import { Experience } from "@/components/sections/experience";
 import { Contact } from "@/components/sections/contact";
 import { Footer } from "@/components/footer";
+import { MarkDefs } from "@/lib/marks";
 import { getDictionary } from "@/lib/i18n";
 import { otherLocale, pathFor, type Locale } from "@/lib/i18n/locales";
 
@@ -23,6 +24,7 @@ export function Home({ locale }: { locale: Locale }) {
 
   return (
     <>
+      <MarkDefs />
       <SectionRail labels={t.sections} />
       <Nav
         copy={{

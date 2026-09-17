@@ -1,54 +1,17 @@
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import {
-  Typescript,
-  Java,
-  Nextjs,
-  Prisma,
-  Postgresql,
-  Supabase,
-  Django,
-  GoogleDrive,
-  Spigotmc,
-  Authdotjs,
-  Docker,
-  Aws,
-  Youtube,
-  Upstash,
-  Python,
-  Heroui,
-  TailwindCss,
-  ShadcnUi,
-  Go,
-  React as ReactIcon,
-  Sqlite,
-  Ffmpeg,
-  Vite,
-  GithubActions,
-  Php,
-  Vercel,
-  Spring,
-  Postman
-} from "@thesvg/react";
-import { YtDlpMark } from "@/lib/yt-dlp-mark";
+import { Mark, type MarkId } from "@/lib/marks";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 /**
- * Vite in its single-colour variant. The default mark draws one of its paths
- * in #000 and the wordmark sets its lettering in #08060d, so both lose part
- * of the logo into the dark page; the mono variant inherits currentColor.
+ * An icon component that draws one artwork from the page's mark sprite (see
+ * lib/marks.tsx). It takes the same props as an icon from @thesvg/react, so
+ * TechIcon, OrbitMark, GridMark and the section components stay unchanged.
  */
-function ViteMono(props: SVGProps<SVGSVGElement>) {
-  return <Vite variant="mono" {...props} />;
-}
-
-/**
- * SQLite as the feather alone. The default variant is the full wordmark at a
- * 2.25:1 aspect, so inside a 32px square it shrank to a sliver, and its
- * lettering is #003B57, which disappears on the dark page.
- */
-function SqliteMono(props: SVGProps<SVGSVGElement>) {
-  return <Sqlite variant="mono" {...props} />;
+export function markIcon(id: MarkId): IconType {
+  const Icon = (props: SVGProps<SVGSVGElement>) => <Mark {...props} id={id} />;
+  Icon.displayName = `Mark(${id})`;
+  return Icon;
 }
 
 /** Renders `dark` everywhere except the light theme, where it renders `light`. */
@@ -59,6 +22,21 @@ function ThemePair({ dark, light }: { dark: ReactNode; light: ReactNode }) {
       <span className="hidden light:contents">{light}</span>
     </>
   );
+}
+
+/**
+ * A mark with a separate artwork for the light theme. `lightClass` colours the
+ * light artwork when it is a single-colour (mono) glyph.
+ */
+function themedMark(dark: MarkId, light: MarkId, lightClass = ""): IconType {
+  const Icon = (props: SVGProps<SVGSVGElement>) => (
+    <ThemePair
+      dark={<Mark {...props} id={dark} />}
+      light={<Mark {...props} id={light} className={`${lightClass} ${props.className ?? ""}`.trim()} />}
+    />
+  );
+  Icon.displayName = `ThemedMark(${dark})`;
+  return Icon;
 }
 
 /*
@@ -78,94 +56,20 @@ function ThemePair({ dark, light }: { dark: ReactNode; light: ReactNode }) {
  * choice; scripts/theme-audit.mjs exempts it.
  *
  * Both renderings ship and the light: variant picks one, so the first paint is
- * already right.
+ * already right. Through the sprite that costs two <use> elements, not two
+ * copies of the artwork.
  */
-export function PrismaMark(props: SVGProps<SVGSVGElement>) {
-  return <ThemePair dark={<Prisma {...props} />} light={<Prisma variant="light" {...props} />} />;
-}
-
-export function ShadcnMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair dark={<ShadcnUi {...props} />} light={<ShadcnUi variant="light" {...props} />} />
-  );
-}
-
-export function GoMark(props: SVGProps<SVGSVGElement>) {
-  return <ThemePair dark={<Go {...props} />} light={<Go variant="light" {...props} />} />;
-}
-
-export function ReactMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair dark={<ReactIcon {...props} />} light={<ReactIcon variant="light" {...props} />} />
-  );
-}
-
-export function PhpMark(props: SVGProps<SVGSVGElement>) {
-  return <ThemePair dark={<Php {...props} />} light={<Php variant="light" {...props} />} />;
-}
-
-export function VercelMark(props: SVGProps<SVGSVGElement>) {
-  return <ThemePair dark={<Vercel {...props} />} light={<Vercel variant="light" {...props} />} />;
-}
-
-export function TailwindMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair
-      dark={<TailwindCss {...props} />}
-      light={
-        <TailwindCss
-          variant="mono"
-          {...props}
-          className={`text-[#0284c7] ${props.className ?? ""}`}
-        />
-      }
-    />
-  );
-}
-
-export function SpigotMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair
-      dark={<Spigotmc {...props} />}
-      light={
-        <Spigotmc variant="mono" {...props} className={`text-[#b45309] ${props.className ?? ""}`} />
-      }
-    />
-  );
-}
-
-export function SpringMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair
-      dark={<Spring {...props} />}
-      light={
-        <Spring variant="mono" {...props} className={`text-[#519336] ${props.className ?? ""}`} />
-      }
-    />
-  );
-}
-
-export function UpstashMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair
-      dark={<Upstash {...props} />}
-      light={
-        <Upstash variant="mono" {...props} className={`text-[#009568] ${props.className ?? ""}`} />
-      }
-    />
-  );
-}
-
-export function PostmanMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair
-      dark={<Postman {...props} />}
-      light={
-        <Postman variant="mono" {...props} className={`text-[#db5d2f] ${props.className ?? ""}`} />
-      }
-    />
-  );
-}
+export const PrismaMark = themedMark("prisma", "prisma-light");
+export const ShadcnMark = themedMark("shadcn", "shadcn-light");
+export const GoMark = themedMark("go", "go-light");
+export const ReactMark = themedMark("react", "react-light");
+export const PhpMark = themedMark("php", "php-light");
+export const VercelMark = themedMark("vercel", "vercel-light");
+export const TailwindMark = themedMark("tailwind", "tailwind-mono", "text-[#0284c7]");
+export const SpigotMark = themedMark("spigot", "spigot-mono", "text-[#b45309]");
+export const SpringMark = themedMark("spring", "spring-mono", "text-[#519336]");
+export const UpstashMark = themedMark("upstash", "upstash-mono", "text-[#009568]");
+export const PostmanMark = themedMark("postman", "postman-mono", "text-[#db5d2f]");
 
 /**
  * Label → brand icon for the chips shown on project cards.
@@ -175,35 +79,40 @@ export function PostmanMark(props: SVGProps<SVGSVGElement>) {
  * see TECH_IMAGES.
  */
 export const TECH_ICONS: Record<string, IconType> = {
-  TypeScript: Typescript,
-  Java: Java,
-  "Next.js": Nextjs,
-  "Next.js API Routes": Nextjs,
+  TypeScript: markIcon("typescript"),
+  Java: markIcon("java"),
+  "Next.js": markIcon("nextjs"),
+  "Next.js API Routes": markIcon("nextjs"),
   Prisma: PrismaMark,
-  PostgreSQL: Postgresql,
-  Supabase: Supabase,
-  "Django REST Framework": Django,
-  "Google Drive API": GoogleDrive,
-  "NextAuth.js": Authdotjs,
+  PostgreSQL: markIcon("postgresql"),
+  Supabase: markIcon("supabase"),
+  "Django REST Framework": markIcon("django"),
+  "Google Drive API": markIcon("google-drive"),
+  "NextAuth.js": markIcon("authjs"),
   Spigot: SpigotMark,
   // NextAuth ships as Auth.js in the icon set
-  NextAuth: Authdotjs,
-  AWS: Aws,
-  "YouTube API": Youtube,
+  NextAuth: markIcon("authjs"),
+  AWS: markIcon("aws"),
+  "YouTube API": markIcon("youtube"),
   "Redis (Upstash)": UpstashMark,
-  Docker: Docker,
-  Python: Python,
-  HeroUI: Heroui,
+  Docker: markIcon("docker"),
+  Python: markIcon("python"),
+  HeroUI: markIcon("heroui"),
   "Tailwind CSS": TailwindMark,
   ShadcnUi: ShadcnMark,
   Go: GoMark,
   React: ReactMark,
-  SQLite: SqliteMono,
-  FFmpeg: Ffmpeg,
-  Vite: ViteMono,
-  "GitHub Actions": GithubActions,
+  // The feather alone, in its mono variant: the default is the full wordmark
+  // at a 2.25:1 aspect, which shrank to a sliver in a 32px square, and its
+  // lettering is #003B57, which disappears on the dark page.
+  SQLite: markIcon("sqlite"),
+  FFmpeg: markIcon("ffmpeg"),
+  // Mono variant: the default draws one path in #000 and sets its lettering in
+  // #08060d, so both lose part of the logo into the dark page.
+  Vite: markIcon("vite"),
+  "GitHub Actions": markIcon("github-actions"),
   // Not in the icon set; cropped from the project's own banner artwork.
-  "yt-dlp": YtDlpMark
+  "yt-dlp": markIcon("yt-dlp")
 };
 
 /**
@@ -236,9 +145,9 @@ export const TECH_ICON_CLASS: Record<string, string> = {
   "Next.js API Routes": "text-black invert light:invert-0",
   // A white tile with a black "UI"; inverted on the light theme.
   HeroUI: "light:invert",
-  // GitHub's path has fill="#181717" baked in rather than currentColor, so it
-  // sinks into the dark page. fill-current on descendants overrides it.
-  GitHub: "text-foreground [&_*]:fill-current",
+  // GitHub's artwork takes currentColor (see lib/marks.tsx), so it follows the
+  // page foreground instead of its baked-in #181717, which sank into the page.
+  GitHub: "text-foreground",
   // The mono feather takes currentColor; SQLite blue restores the brand and
   // holds non-text contrast on both a dark and a light page.
   SQLite: "text-[#0F80CC]",

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence, motion } from "motion/react";
 
 type ToastVariant = "success" | "error" | "info";
 
@@ -9,7 +8,12 @@ interface Toast {
   id: string;
   message: string;
   variant: ToastVariant;
+  /** Playing its exit transition; removed once that has run. */
+  leaving: boolean;
 }
+
+/** Matches the exit transition's duration in the markup below. */
+const EXIT_MS = 250;
 
 interface ToastContextValue {
   toast: (message: string, variant?: ToastVariant) => void;
@@ -95,20 +99,21 @@ export function ToastProvider({
 }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
+  const dismiss = React.useCallback((id: string) => {
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, EXIT_MS);
+  }, []);
+
   const addToast = React.useCallback(
     (message: string, variant: ToastVariant = "info") => {
       const id = crypto.randomUUID();
-      setToasts((prev) => [...prev, { id, message, variant }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 4000);
+      setToasts((prev) => [...prev, { id, message, variant, leaving: false }]);
+      setTimeout(() => dismiss(id), 4000);
     },
-    []
+    [dismiss]
   );
-
-  const dismiss = React.useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
 
   const value = React.useMemo(
     () => ({ toast: addToast }),
@@ -125,45 +130,41 @@ export function ToastProvider({
         aria-label={labels.region}
         className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-3 pointer-events-none"
       >
-        <AnimatePresence mode="popLayout">
-          {toasts.map((t) => (
-            <motion.div
-              key={t.id}
-              layout
-              initial={{ opacity: 0, y: 20, scale: 0.95, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -10, scale: 0.95, filter: "blur(4px)" }}
-              transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
-              className={`pointer-events-auto flex items-center gap-3 rounded-xl border ${BORDER_COLOR[t.variant]} bg-surface/90 px-4 py-3 shadow-2xl shadow-shadow/30 backdrop-blur-md`}
+        {toasts.map((t) => (
+          // Enters from @starting-style and leaves through the `leaving` classes;
+          // the item is removed after EXIT_MS, so the exit is seen.
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-center gap-3 rounded-xl border ${BORDER_COLOR[t.variant]} bg-surface/90 px-4 py-3 shadow-2xl shadow-shadow/30 backdrop-blur-md transition-[opacity,translate,scale,filter] duration-300 ease-out starting:translate-y-5 starting:scale-95 starting:opacity-0 starting:blur-sm motion-reduce:transition-none ${
+              t.leaving ? "-translate-y-2.5 scale-95 opacity-0 blur-sm" : "translate-y-0 scale-100 opacity-100 blur-none"
+            }`}>
+            {ICON[t.variant]}
+            <span className="font-mono text-sm text-foreground">
+              {t.message}
+            </span>
+            <button
+              type="button"
+              onClick={() => dismiss(t.id)}
+              aria-label={labels.dismiss}
+              className="ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted transition-colors hover:text-foreground"
             >
-              {ICON[t.variant]}
-              <span className="font-mono text-sm text-foreground">
-                {t.message}
-              </span>
-              <button
-                type="button"
-                onClick={() => dismiss(t.id)}
-                aria-label={labels.dismiss}
-                className="ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted transition-colors hover:text-foreground"
+              <svg
+                width={14}
+                height={14}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
               >
-                <svg
-                  width={14}
-                  height={14}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        ))}
       </div>
     </ToastContext.Provider>
   );

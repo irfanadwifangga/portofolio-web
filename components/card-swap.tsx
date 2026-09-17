@@ -12,6 +12,9 @@
 //   6. The card shadow uses the --shadow token (`shadow-shadow/40`) instead of
 //      `shadow-black/40`, so it softens in the light theme instead of reading
 //      as a dirty smudge.
+//   7. The swap interval and the running timeline stop while the stack is off
+//      screen, as well as on hover; either one keeps it paused. Upstream kept
+//      animating a 3D stack nobody could see.
 "use client";
 
 import React, {
@@ -221,26 +224,48 @@ const CardSwap: React.FC<CardSwapProps> = ({
     swap();
     intervalRef.current = window.setInterval(swap, delay);
 
+    // Deviation 7: paused while off screen or hovered.
     const node = container.current;
-    if (pauseOnHover && node) {
-      const pause = () => {
-        tlRef.current?.pause();
-        clearInterval(intervalRef.current);
-      };
-      const resume = () => {
-        tlRef.current?.play();
-        intervalRef.current = window.setInterval(swap, delay);
-      };
-      node.addEventListener("mouseenter", pause);
-      node.addEventListener("mouseleave", resume);
-      return () => {
-        node.removeEventListener("mouseenter", pause);
-        node.removeEventListener("mouseleave", resume);
-        clearInterval(intervalRef.current);
-        tlRef.current?.kill();
-      };
+    let onScreen = true;
+    let hovered = false;
+    const pause = () => {
+      tlRef.current?.pause();
+      clearInterval(intervalRef.current);
+    };
+    const resume = () => {
+      if (!onScreen || hovered) return;
+      tlRef.current?.play();
+      clearInterval(intervalRef.current);
+      intervalRef.current = window.setInterval(swap, delay);
+    };
+    const onEnter = () => {
+      hovered = true;
+      pause();
+    };
+    const onLeave = () => {
+      hovered = false;
+      resume();
+    };
+    const visibility = node
+      ? new IntersectionObserver(([entry]) => {
+          onScreen = entry.isIntersecting;
+          if (onScreen) resume();
+          else pause();
+        })
+      : null;
+    if (node) {
+      visibility?.observe(node);
+      if (pauseOnHover) {
+        node.addEventListener("mouseenter", onEnter);
+        node.addEventListener("mouseleave", onLeave);
+      }
     }
     return () => {
+      visibility?.disconnect();
+      if (node && pauseOnHover) {
+        node.removeEventListener("mouseenter", onEnter);
+        node.removeEventListener("mouseleave", onLeave);
+      }
       clearInterval(intervalRef.current);
       tlRef.current?.kill();
     };

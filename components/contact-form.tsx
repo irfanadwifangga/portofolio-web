@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { sendEmail } from "@/app/actions/send-email";
 import { useToast } from "@/components/toast";
 import type { Dictionary } from "@/lib/i18n";
@@ -58,6 +57,30 @@ function SpinnerIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+function CheckIcon() {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+/** The send button's icon slot: all three icons stay mounted and cross-fade. */
+const ICON_STATE =
+  "col-start-1 row-start-1 flex transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none";
+const ICON_SHOWN = "scale-100 opacity-100";
+const ICON_HIDDEN = "scale-50 opacity-0";
 
 function ComposeIcon() {
   return (
@@ -236,48 +259,17 @@ export function ContactForm({
             disabled={sending}
             className="group relative flex items-center gap-2.5 rounded-xl bg-accent px-5 py-2.5 font-mono text-sm font-medium text-on-accent shadow-lg shadow-accent/20 transition-all duration-200 hover:bg-accent/90 hover:shadow-accent/30 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <AnimatePresence mode="wait" initial={false}>
-              {sending ? (
-                <motion.span
-                  key="spin"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <SpinnerIcon className="animate-spin" />
-                </motion.span>
-              ) : sent ? (
-                <motion.svg
-                  key="check"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
-                  width={16}
-                  height={16}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                >
-                  <path d="M20 6 9 17l-5-5" />
-                </motion.svg>
-              ) : (
-                <motion.span
-                  key="send"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <SendIcon className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              )}
-            </AnimatePresence>
+            <span className="grid h-4 w-4 place-items-center">
+              <span className={`${ICON_STATE} ${sending ? ICON_SHOWN : ICON_HIDDEN}`}>
+                <SpinnerIcon className="animate-spin" />
+              </span>
+              <span className={`${ICON_STATE} ${!sending && sent ? ICON_SHOWN : ICON_HIDDEN}`}>
+                <CheckIcon />
+              </span>
+              <span className={`${ICON_STATE} ${!sending && !sent ? ICON_SHOWN : ICON_HIDDEN}`}>
+                <SendIcon className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+            </span>
             {sending ? copy.sending : sent ? copy.sent : copy.send}
           </button>
 
@@ -329,34 +321,29 @@ function FormField({
         />
       </div>
       {/* Inline error icon */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            className="absolute right-4 flex items-center"
-            title={error}
+      <div
+        className={`absolute right-4 flex items-center transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none ${
+          error ? "scale-100 opacity-100" : "pointer-events-none scale-50 opacity-0"
+        }`}
+        title={error}
+      >
+          <svg
+            width={14}
+            height={14}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-red-400 light:text-red-600"
+            aria-hidden
           >
-            <svg
-              width={14}
-              height={14}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-red-400 light:text-red-600"
-              aria-hidden
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+      </div>
     </div>
   );
 }

@@ -6,10 +6,14 @@
 //      only orbits <img> from URLs; this site's marks are React components
 //      from the icon set, which have no URL to point at.
 //   3. `paused` also respects prefers-reduced-motion.
+//   4. The orbit holds still while it is off screen; upstream animated every
+//      item's position on every frame for the life of the page.
+//   5. Plain CSS instead of Motion. Each item runs a keyframe animation on
+//      offset-distance, spaced along the path with a negative animation-delay,
+//      so the site no longer ships an animation library for one loop.
 "use client";
 
 import { useMemo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { motion, useMotionValue, useTransform, animate, type MotionValue } from "motion/react";
 
 type OrbitShape =
   | "ellipse"
@@ -59,7 +63,9 @@ interface OrbitItemProps {
   path: string;
   itemSize: number;
   rotation: number;
-  progress: MotionValue<number>;
+  duration: number;
+  direction: "normal" | "reverse";
+  easing: string;
   fill: boolean;
 }
 
@@ -141,6 +147,13 @@ function generateWavePath(
   return pts.join(" ") + " Z";
 }
 
+const EASING: Record<string, string> = {
+  linear: "linear",
+  easeIn: "ease-in",
+  easeOut: "ease-out",
+  easeInOut: "ease-in-out"
+};
+
 function OrbitItem({
   item,
   index,
@@ -148,29 +161,33 @@ function OrbitItem({
   path,
   itemSize,
   rotation,
-  progress,
+  duration,
+  direction,
+  easing,
   fill
 }: OrbitItemProps) {
-  const itemOffset = fill ? (index / totalItems) * 100 : 0;
-
-  const offsetDistance = useTransform(progress, (p: number) => {
-    const offset = (((p + itemOffset) % 100) + 100) % 100;
-    return `${offset}%`;
-  });
+  // Where along the path this item starts, as a share of one lap. A negative
+  // delay starts the animation that far in, which spaces the items out.
+  const start = fill ? index / totalItems : 0;
+  const lapsIn = direction === "reverse" ? 1 - start : start;
 
   return (
-    <motion.div
-      className="absolute will-change-transform select-none"
+    <div
+      className="orbit-item absolute will-change-transform select-none"
       style={{
         width: itemSize,
         height: itemSize,
         offsetPath: `path("${path}")`,
         offsetRotate: "0deg",
         offsetAnchor: "center center",
-        offsetDistance
+        animationName: direction === "reverse" ? "orbit-lap-reverse" : "orbit-lap",
+        animationDuration: `${duration}s`,
+        animationTimingFunction: EASING[easing] ?? "linear",
+        animationIterationCount: "infinite",
+        animationDelay: `${-lapsIn * duration}s`
       }}>
       <div style={{ transform: `rotate(${-rotation}deg)` }}>{item}</div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -263,21 +280,17 @@ export default function OrbitImages({
     return () => observer.disconnect();
   }, [responsive, baseWidth]);
 
-  const progress = useMotionValue(0);
-
+  // Deviation 4: hold the orbit still while it is off screen. The attribute is
+  // written straight to the DOM; a state update would re-render every item.
   useEffect(() => {
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (paused || reduced) return;
-    const controls = animate(progress, direction === "reverse" ? -100 : 100, {
-      duration,
-      ease: easing,
-      repeat: Infinity,
-      repeatType: "loop"
+    const node = containerRef.current;
+    if (!node) return;
+    const visibility = new IntersectionObserver(([entry]) => {
+      node.toggleAttribute("data-offscreen", !entry.isIntersecting);
     });
-    return () => controls.stop();
-  }, [progress, duration, easing, direction, paused]);
+    visibility.observe(node);
+    return () => visibility.disconnect();
+  }, []);
 
   const containerWidth = responsive ? "100%" : typeof width === "number" ? width : "100%";
   const containerHeight = responsive
@@ -304,7 +317,8 @@ export default function OrbitImages({
   return (
     <div
       ref={containerRef}
-      className={`relative mx-auto ${className}`}
+      className={`orbit-images relative mx-auto ${className}`}
+      data-paused={paused || undefined}
       style={{
         width: containerWidth,
         height: containerHeight,
@@ -351,12 +365,22 @@ export default function OrbitImages({
               path={path}
               itemSize={itemSize}
               rotation={rotation}
-              progress={progress}
+              duration={duration}
+              direction={direction}
+              easing={easing}
               fill={fill}
             />
           ))}
         </div>
       </div>
+
+      <style>{`
+@keyframes orbit-lap { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+@keyframes orbit-lap-reverse { from { offset-distance: 100%; } to { offset-distance: 0%; } }
+.orbit-images[data-offscreen] .orbit-item,
+.orbit-images[data-paused] .orbit-item { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .orbit-images .orbit-item { animation-play-state: paused; } }
+`}</style>
 
       {centerContent && (
         <div className="absolute inset-0 z-10 flex items-center justify-center">

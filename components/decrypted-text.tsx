@@ -7,13 +7,19 @@
 //   4. A11Y FIX: the sr-only node now holds the real `text`. Upstream put
 //      `displayText` there, so screen readers announced the scrambled
 //      characters instead of the word.
+//   5. No layout shift while scrambling. Scrambled glyphs have different
+//      widths, so upstream re-wrapped the text on every tick and pushed
+//      everything below it around (measured CLS 8–18 on a phone). Now each
+//      original character stays in the flow, transparent, and its scrambled
+//      stand-in is drawn over it absolutely, so line breaks never change. Once
+//      settled — and in the server HTML — the text renders as one plain span
+//      instead of one span per character.
 "use client";
 
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { motion } from "motion/react";
-import type { HTMLMotionProps } from "motion/react";
+import type { HTMLAttributes } from "react";
 
-interface DecryptedTextProps extends HTMLMotionProps<"span"> {
+interface DecryptedTextProps extends HTMLAttributes<HTMLSpanElement> {
   text: string;
   speed?: number;
   maxIterations?: number;
@@ -386,24 +392,32 @@ export default function DecryptedText({
         : {};
 
   return (
-    <motion.span
+    <span
       ref={containerRef}
       className={`inline-block whitespace-pre-wrap ${parentClassName}`}
       {...animateProps}
       {...props}>
       <span className="sr-only">{text}</span>
 
-      <span aria-hidden="true">
-        {displayText.split("").map((char, index) => {
-          const isRevealedOrDone = revealedIndices.has(index) || (!isAnimating && isDecrypted);
-
-          return (
-            <span key={index} className={isRevealedOrDone ? className : encryptedClassName}>
-              {char}
+      {!isAnimating && isDecrypted ? (
+        <span aria-hidden="true" className={className}>
+          {text}
+        </span>
+      ) : (
+        <span aria-hidden="true">
+          {displayText.split("").map((char, index) => (
+            // Deviation 5: the real character holds the layout; the scrambled
+            // one is painted over it and cannot move anything.
+            <span key={index} className="relative">
+              <span className="text-transparent">{text[index] ?? char}</span>
+              <span
+                className={`absolute top-0 left-0 ${revealedIndices.has(index) ? className : encryptedClassName}`}>
+                {char}
+              </span>
             </span>
-          );
-        })}
-      </span>
-    </motion.span>
+          ))}
+        </span>
+      )}
+    </span>
   );
 }
