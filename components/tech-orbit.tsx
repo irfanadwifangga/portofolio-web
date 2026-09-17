@@ -41,8 +41,10 @@ export function TechOrbit({ outer, inner, grid, caption }: TechOrbitProps) {
     return <div className="flex flex-wrap justify-center gap-3">{grid}</div>;
   }
 
+  // Clipped sideways only: a mark on the top of the outer ring shows its tooltip
+  // above itself, past the box's top edge, and overflow-hidden cut it off.
   return (
-    <div className="relative mx-auto h-[560px] max-w-5xl overflow-hidden">
+    <div className="relative mx-auto h-[560px] max-w-5xl overflow-x-clip">
       <div className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-full -translate-x-1/2 -translate-y-1/2">
         <OrbitImages
           items={outer}

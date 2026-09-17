@@ -27,7 +27,7 @@ import {
   Php,
   Vercel,
   Spring,
-  Postman,
+  Postman
 } from "@thesvg/react";
 import { YtDlpMark } from "@/lib/yt-dlp-mark";
 
@@ -69,11 +69,13 @@ function ThemePair({ dark, light }: { dark: ReactNode; light: ReactNode }) {
  * Each ships a light variant.
  *
  * Brand colours too pale for a light surface: React #58C4DC (1.93:1), Tailwind
- * #38bdf8 (2.14:1), Spigot #ED8106 (2.71:1), Django #44b78b (2.5:1), Spring
- * #68bd45 (2.23:1), Upstash #00c98d (2.05:1) and Postman #ff6c37 (2.67:1).
- * React ships a light variant (#087EA4). The others use their mono glyph in a
- * darker shade that clears 3.3:1 on every light surface, and Django uses its
- * own brand green, #092e20.
+ * #38bdf8 (2.14:1), Spigot #ED8106 (2.71:1), Spring #68bd45 (2.23:1), Upstash
+ * #00c98d (2.05:1) and Postman #ff6c37 (2.67:1). React ships a light variant
+ * (#087EA4). The others use their mono glyph in a darker shade that clears
+ * 3.3:1 on every light surface.
+ *
+ * Django #44b78b (2.5:1) keeps its brand green in both themes, by the owner's
+ * choice; scripts/theme-audit.mjs exempts it.
  *
  * Both renderings ship and the light: variant picks one, so the first paint is
  * already right.
@@ -83,7 +85,9 @@ export function PrismaMark(props: SVGProps<SVGSVGElement>) {
 }
 
 export function ShadcnMark(props: SVGProps<SVGSVGElement>) {
-  return <ThemePair dark={<ShadcnUi {...props} />} light={<ShadcnUi variant="light" {...props} />} />;
+  return (
+    <ThemePair dark={<ShadcnUi {...props} />} light={<ShadcnUi variant="light" {...props} />} />
+  );
 }
 
 export function GoMark(props: SVGProps<SVGSVGElement>) {
@@ -91,7 +95,9 @@ export function GoMark(props: SVGProps<SVGSVGElement>) {
 }
 
 export function ReactMark(props: SVGProps<SVGSVGElement>) {
-  return <ThemePair dark={<ReactIcon {...props} />} light={<ReactIcon variant="light" {...props} />} />;
+  return (
+    <ThemePair dark={<ReactIcon {...props} />} light={<ReactIcon variant="light" {...props} />} />
+  );
 }
 
 export function PhpMark(props: SVGProps<SVGSVGElement>) {
@@ -106,7 +112,13 @@ export function TailwindMark(props: SVGProps<SVGSVGElement>) {
   return (
     <ThemePair
       dark={<TailwindCss {...props} />}
-      light={<TailwindCss variant="mono" {...props} className={`text-[#0284c7] ${props.className ?? ""}`} />}
+      light={
+        <TailwindCss
+          variant="mono"
+          {...props}
+          className={`text-[#0284c7] ${props.className ?? ""}`}
+        />
+      }
     />
   );
 }
@@ -115,16 +127,9 @@ export function SpigotMark(props: SVGProps<SVGSVGElement>) {
   return (
     <ThemePair
       dark={<Spigotmc {...props} />}
-      light={<Spigotmc variant="mono" {...props} className={`text-[#b45309] ${props.className ?? ""}`} />}
-    />
-  );
-}
-
-export function DjangoMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <ThemePair
-      dark={<Django {...props} />}
-      light={<Django variant="mono" {...props} className={`text-[#092e20] ${props.className ?? ""}`} />}
+      light={
+        <Spigotmc variant="mono" {...props} className={`text-[#b45309] ${props.className ?? ""}`} />
+      }
     />
   );
 }
@@ -133,7 +138,9 @@ export function SpringMark(props: SVGProps<SVGSVGElement>) {
   return (
     <ThemePair
       dark={<Spring {...props} />}
-      light={<Spring variant="mono" {...props} className={`text-[#519336] ${props.className ?? ""}`} />}
+      light={
+        <Spring variant="mono" {...props} className={`text-[#519336] ${props.className ?? ""}`} />
+      }
     />
   );
 }
@@ -142,7 +149,9 @@ export function UpstashMark(props: SVGProps<SVGSVGElement>) {
   return (
     <ThemePair
       dark={<Upstash {...props} />}
-      light={<Upstash variant="mono" {...props} className={`text-[#009568] ${props.className ?? ""}`} />}
+      light={
+        <Upstash variant="mono" {...props} className={`text-[#009568] ${props.className ?? ""}`} />
+      }
     />
   );
 }
@@ -151,7 +160,9 @@ export function PostmanMark(props: SVGProps<SVGSVGElement>) {
   return (
     <ThemePair
       dark={<Postman {...props} />}
-      light={<Postman variant="mono" {...props} className={`text-[#db5d2f] ${props.className ?? ""}`} />}
+      light={
+        <Postman variant="mono" {...props} className={`text-[#db5d2f] ${props.className ?? ""}`} />
+      }
     />
   );
 }
@@ -171,7 +182,7 @@ export const TECH_ICONS: Record<string, IconType> = {
   Prisma: PrismaMark,
   PostgreSQL: Postgresql,
   Supabase: Supabase,
-  "Django REST Framework": DjangoMark,
+  "Django REST Framework": Django,
   "Google Drive API": GoogleDrive,
   "NextAuth.js": Authdotjs,
   Spigot: SpigotMark,
@@ -192,7 +203,7 @@ export const TECH_ICONS: Record<string, IconType> = {
   Vite: ViteMono,
   "GitHub Actions": GithubActions,
   // Not in the icon set; cropped from the project's own banner artwork.
-  "yt-dlp": YtDlpMark,
+  "yt-dlp": YtDlpMark
 };
 
 /**
@@ -206,7 +217,7 @@ export const TECH_IMAGES: Record<string, string> = {
   // 1.4 MB) with its green backplate removed. Renamed from rcon.png to bust
   // the image-optimizer cache, which kept serving the pre-edit green version.
   RCON: "/rcon-mark.png",
-  Duitku: "/duitku.svg",
+  Duitku: "/duitku.svg"
 };
 
 /**
@@ -219,8 +230,12 @@ export const TECH_IMAGES: Record<string, string> = {
  * white glyph.
  */
 export const TECH_ICON_CLASS: Record<string, string> = {
-  "Next.js": "text-black",
-  "Next.js API Routes": "text-black",
+  // Like HeroUI: a white disc with a black N on the dark theme, and the plain
+  // black disc with a white N on the light one.
+  "Next.js": "text-black invert light:invert-0",
+  "Next.js API Routes": "text-black invert light:invert-0",
+  // A white tile with a black "UI"; inverted on the light theme.
+  HeroUI: "light:invert",
   // GitHub's path has fill="#181717" baked in rather than currentColor, so it
   // sinks into the dark page. fill-current on descendants overrides it.
   GitHub: "text-foreground [&_*]:fill-current",
@@ -229,7 +244,7 @@ export const TECH_ICON_CLASS: Record<string, string> = {
   SQLite: "text-[#0F80CC]",
   // Java ships only its default artwork. The orange steam is 2.83:1 on the light
   // page, and 3.43:1 once darkened by 10%.
-  Java: "light:brightness-90",
+  Java: "light:brightness-90"
 };
 
 /**

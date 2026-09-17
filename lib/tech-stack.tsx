@@ -5,6 +5,7 @@ import {
   Java,
   Nextjs,
   Nodejs,
+  Django,
   Celery,
   Htmx,
   Postgresql,
@@ -21,7 +22,6 @@ import {
 } from "@thesvg/react";
 // Theme-aware versions of marks that fail on the light page.
 import {
-  DjangoMark,
   GoMark,
   PhpMark,
   PostmanMark,
@@ -70,7 +70,7 @@ export const techGroups: TechGroup[] = [
     category: "Backend",
     items: [
       { name: "Node.js", Icon: Nodejs },
-      { name: "Django REST", Icon: DjangoMark },
+      { name: "Django REST", Icon: Django },
       { name: "Spring", Icon: SpringMark },
       { name: "Prisma", Icon: PrismaMark },
       { name: "NextAuth", Icon: Authdotjs },

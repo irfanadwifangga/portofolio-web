@@ -35,6 +35,9 @@ const THEMES = ["dark", "light"];
 const TEXT_MIN = 4.5;
 const LARGE_TEXT_MIN = 3;
 const MARK_MIN = 3;
+// Owner decision: Django keeps its brand green (#44b78b, about 2.5:1 on the
+// light page) rather than a darker stand-in.
+const MARK_EXEMPT = new Set(["Django REST Framework", "Django REST"]);
 const TOGGLE = 'button[aria-label^="Switch"]';
 // Vercel Web Analytics serves its script only on Vercel deployments. Locally it
 // 404s on every page load in either theme, so it is not a finding here.
@@ -431,7 +434,7 @@ async function auditRegion(page, report, { theme, width, name, selector }) {
     for (const mark of marks) {
       report.marksChecked++;
       const ratio = markRatio(png, region.box, mark);
-      if (ratio < MARK_MIN) low.push({ label: mark.label, ratio });
+      if (ratio < MARK_MIN && !MARK_EXEMPT.has(mark.label)) low.push({ label: mark.label, ratio });
     }
     if (low.length) {
       let again = [];
