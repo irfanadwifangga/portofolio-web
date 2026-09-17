@@ -532,6 +532,56 @@ async function behaviour(page) {
   await sleep(400);
   check("with no stored choice, a system change applies live", (await theme()) === "light", await theme());
 
+  // The reveal: a click grows the new theme out of the toggle as a view
+  // transition, so the animation runs on ::view-transition-new(root) and its
+  // circle is centred on the button.
+  const reveal = await page.evaluate(`new Promise((resolve) => {
+    const button = document.querySelector(${JSON.stringify(TOGGLE)});
+    const rect = button.getBoundingClientRect();
+    const centre = [rect.left + rect.width / 2, rect.top + rect.height / 2];
+    if (typeof document.startViewTransition !== "function") return resolve({ supported: false });
+    new MutationObserver((_, observer) => {
+      observer.disconnect();
+      requestAnimationFrame(() => {
+        const animation = document.getAnimations().find((a) => a.effect?.pseudoElement === "::view-transition-new(root)");
+        const first = animation?.effect.getKeyframes()[0]?.clipPath ?? null;
+        const at = first?.split(" at ")[1]?.split("px").map(parseFloat);
+        resolve({
+          supported: true,
+          animated: Boolean(animation),
+          duration: animation?.effect.getTiming().duration ?? null,
+          first,
+          offByPx: at ? Math.hypot(at[0] - centre[0], at[1] - centre[1]) : null
+        });
+      });
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    button.click();
+  })`);
+  check(
+    "a toggle click reveals the new theme as a circle from the button",
+    reveal.supported && reveal.animated && reveal.offByPx !== null && reveal.offByPx < 1,
+    reveal
+  );
+  await sleep(800);
+  check("the theme is applied once the reveal ends", (await theme()) === "dark", await theme());
+
+  await page.send("Emulation.setEmulatedMedia", {
+    features: [
+      { name: "prefers-color-scheme", value: "light" },
+      { name: "prefers-reduced-motion", value: "reduce" }
+    ]
+  });
+  const reduced = await page.evaluate(`(() => {
+    document.querySelector(${JSON.stringify(TOGGLE)}).click();
+    return {
+      theme: document.documentElement.dataset.theme,
+      animations: document.getAnimations().filter((a) => a.effect?.pseudoElement?.startsWith("::view-transition")).length
+    };
+  })()`);
+  check("with reduced motion the theme swaps at once", reduced.theme === "light" && reduced.animations === 0, reduced);
+  await setSystem("light");
+  await sleep(200);
+
   await page.evaluate("document.querySelector('.sm-toggle').click()");
   await sleep(1000);
   const whileOpen = await page.evaluate(`(() => {

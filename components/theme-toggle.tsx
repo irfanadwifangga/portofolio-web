@@ -16,6 +16,9 @@ const ICON_CLASS =
  * is visible, so the server's markup never depends on a theme it cannot know.
  * They carry data-theme-motion so the swap rule in globals.css leaves their
  * cross-fade running.
+ *
+ * A click reveals the new theme as a circle growing from the button; see
+ * toggleTheme in lib/theme.ts.
  */
 export function ThemeToggle({ labels }: { labels: Dictionary["theme"] }) {
   const theme = useTheme();
@@ -30,7 +33,11 @@ export function ThemeToggle({ labels }: { labels: Dictionary["theme"] }) {
     <button
       type="button"
       data-theme-toggle
-      onClick={() => toggleTheme()}
+      onClick={(event) => {
+        // The new theme grows out of this button's centre.
+        const rect = event.currentTarget.getBoundingClientRect();
+        toggleTheme({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      }}
       aria-label={label}
       className="relative -m-2.5 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-muted transition-[color,scale] duration-150 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none active:scale-[0.96]">
       <svg

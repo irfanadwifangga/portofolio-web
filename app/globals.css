@@ -179,6 +179,15 @@ body {
   transition: none !important;
 }
 
+/* The theme reveal (lib/theme.ts) clips the new view open from the toggle.
+   The browser's default cross-fade would show both themes blended underneath
+   the circle, so it is turned off; the site has no other view transitions. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 ::selection {
   background: var(--accent);
   color: var(--on-accent);

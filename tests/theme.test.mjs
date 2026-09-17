@@ -4,13 +4,21 @@ import {
   BOOT_SCRIPT,
   STORAGE_KEY,
   resolveTheme,
+  revealRadius,
   storedAfterToggle,
   toggleTheme
 } from "../lib/theme.ts";
 
 // A minimal browser: storage, matchMedia, <html> and rAF. Only what
 // lib/theme.ts touches.
-function fakeBrowser({ stored = null, systemDark = false, theme, storageThrows = false } = {}) {
+function fakeBrowser({
+  stored = null,
+  systemDark = false,
+  theme,
+  storageThrows = false,
+  reducedMotion = false,
+  viewTransitions = false
+} = {}) {
   const store = new Map(stored === null ? [] : [[STORAGE_KEY, stored]]);
   const attributes = new Map();
   const frames = [];
@@ -19,8 +27,15 @@ function fakeBrowser({ stored = null, systemDark = false, theme, storageThrows =
     style: {},
     setAttribute: (name, value) => attributes.set(name, value),
     removeAttribute: (name) => attributes.delete(name),
-    hasAttribute: (name) => attributes.has(name)
+    hasAttribute: (name) => attributes.has(name),
+    animations: [],
+    animate(keyframes, options) {
+      this.animations.push({ keyframes, options });
+    }
   };
+  // View transitions: the update callback is held until the test runs it,
+  // the way a browser runs it only after snapshotting the old view.
+  const transitions = [];
   const blocked = () => {
     throw new Error("storage blocked");
   };
@@ -31,13 +46,38 @@ function fakeBrowser({ stored = null, systemDark = false, theme, storageThrows =
         setItem: (key, value) => store.set(key, String(value)),
         removeItem: (key) => store.delete(key)
       };
-  globalThis.window = { matchMedia: () => ({ matches: systemDark }) };
+  globalThis.window = {
+    innerWidth: 1000,
+    innerHeight: 800,
+    matchMedia: (query) => ({ matches: query.includes("reduced-motion") ? reducedMotion : systemDark })
+  };
   globalThis.document = { documentElement: root };
+  if (viewTransitions) {
+    globalThis.document.startViewTransition = (update) => {
+      let markReady;
+      const transition = {
+        update,
+        skipped: false,
+        ready: new Promise((resolve) => (markReady = resolve)),
+        finished: new Promise(() => {}),
+        skipTransition() {
+          this.skipped = true;
+        },
+        run() {
+          update();
+          markReady();
+        }
+      };
+      transitions.push(transition);
+      return transition;
+    };
+  }
   globalThis.getComputedStyle = () => ({ backgroundColor: "" });
   globalThis.requestAnimationFrame = (callback) => frames.push(callback);
   return {
     store,
     root,
+    transitions,
     runFrame: () => frames.splice(0).forEach((callback) => callback())
   };
 }
@@ -106,4 +146,59 @@ test("toggleTheme still works when storage is blocked", () => {
   const { root } = fakeBrowser({ theme: "dark", systemDark: true, storageThrows: true });
   assert.equal(toggleTheme(), "light");
   assert.equal(root.dataset.theme, "light");
+});
+
+test("the reveal radius reaches the farthest corner", () => {
+  assert.equal(revealRadius(0, 0, 300, 400), 500);
+  assert.equal(revealRadius(300, 400, 300, 400), 500);
+  assert.equal(revealRadius(150, 0, 300, 400), Math.hypot(150, 400));
+});
+
+test("with no view transitions, a toggle from the button swaps at once", () => {
+  const { root } = fakeBrowser({ theme: "dark", systemDark: true });
+  assert.equal(toggleTheme({ x: 10, y: 10 }), "light");
+  assert.equal(root.dataset.theme, "light");
+  assert.equal(root.animations.length, 0);
+});
+
+test("reduced motion swaps at once even where view transitions exist", () => {
+  const { root, transitions } = fakeBrowser({ theme: "dark", systemDark: true, reducedMotion: true, viewTransitions: true });
+  toggleTheme({ x: 10, y: 10 });
+  assert.equal(root.dataset.theme, "light");
+  assert.equal(transitions.length, 0);
+});
+
+test("a toggle without an origin swaps at once", () => {
+  const { root, transitions } = fakeBrowser({ theme: "dark", systemDark: true, viewTransitions: true });
+  toggleTheme();
+  assert.equal(root.dataset.theme, "light");
+  assert.equal(transitions.length, 0);
+});
+
+test("a toggle from the button reveals the new theme from that point", async () => {
+  const { root, transitions } = fakeBrowser({ theme: "dark", systemDark: true, viewTransitions: true });
+  assert.equal(toggleTheme({ x: 900, y: 20 }), "light");
+  assert.equal(transitions.length, 1);
+  assert.equal(root.dataset.theme, "dark", "applied inside the transition, after the snapshot");
+
+  transitions[0].run();
+  assert.equal(root.dataset.theme, "light");
+  await transitions[0].ready;
+  await Promise.resolve();
+
+  assert.equal(root.animations.length, 1);
+  const { keyframes, options } = root.animations[0];
+  const radius = revealRadius(900, 20, 1000, 800);
+  assert.deepEqual(keyframes.clipPath, ["circle(0px at 900px 20px)", `circle(${radius}px at 900px 20px)`]);
+  assert.equal(options.pseudoElement, "::view-transition-new(root)");
+});
+
+test("two clicks before the first transition applies still alternate", () => {
+  const { root, store, transitions } = fakeBrowser({ theme: "dark", systemDark: true, viewTransitions: true });
+  assert.equal(toggleTheme({ x: 0, y: 0 }), "light");
+  assert.equal(toggleTheme({ x: 0, y: 0 }), "dark");
+  assert.equal(store.has(STORAGE_KEY), false);
+  transitions[0].run();
+  transitions[1].run();
+  assert.equal(root.dataset.theme, "dark");
 });

@@ -14,6 +14,10 @@ export type Theme = "light" | "dark";
 export const STORAGE_KEY = "theme";
 
 const SYSTEM_DARK = "(prefers-color-scheme: dark)";
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+/** How long the new theme takes to grow out of the toggle, in milliseconds. */
+const REVEAL_MS = 500;
 
 /** The theme a visitor sees: an explicit stored choice wins, otherwise the OS. */
 export function resolveTheme(stored: string | null, systemDark: boolean): Theme {
@@ -71,9 +75,61 @@ export function applyTheme(theme: Theme): void {
   );
 }
 
-export function toggleTheme(): Theme {
+/** The radius a circle centred at (x, y) needs to cover a width × height viewport. */
+export function revealRadius(x: number, y: number, width: number, height: number): number {
+  return Math.hypot(Math.max(x, width - x), Math.max(y, height - y));
+}
+
+/** A point in viewport coordinates, such as the centre of the clicked toggle. */
+export type Origin = { x: number; y: number };
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => { ready: Promise<void> };
+};
+
+/**
+ * A theme picked by a click whose view transition has not applied it yet. The
+ * browser runs the update callback a frame later, so a second click in that
+ * frame must toggle from here, not from the attribute.
+ */
+let pending: Theme | null = null;
+
+/**
+ * Applies a theme by growing it out of `origin` as a circle. The browser
+ * snapshots the old view, applyTheme runs inside the update callback, and the
+ * live new view is clipped open over the snapshot. Without the API, without an
+ * origin, or when the visitor prefers reduced motion, it swaps at once.
+ */
+function revealTheme(theme: Theme, origin: Origin | undefined): void {
+  const doc = document as ViewTransitionDocument;
+  if (!origin || typeof doc.startViewTransition !== "function" || window.matchMedia(REDUCED_MOTION).matches) {
+    pending = null;
+    applyTheme(theme);
+    return;
+  }
+  pending = theme;
+  // Starting a transition skips one still running; its callback still applies.
+  const transition = doc.startViewTransition(() => {
+    if (pending === theme) pending = null;
+    applyTheme(theme);
+  });
+  const { x, y } = origin;
+  const radius = revealRadius(x, y, window.innerWidth, window.innerHeight);
+  transition.ready
+    .then(() => {
+      document.documentElement.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+        { duration: REVEAL_MS, easing: "ease-in-out", pseudoElement: "::view-transition-new(root)" }
+      );
+    })
+    .catch(() => {
+      // Skipped by a newer click; the theme was still applied.
+    });
+}
+
+export function toggleTheme(origin?: Origin): Theme {
   const systemDark = systemPrefersDark();
-  const current = getTheme() ?? resolveTheme(readStored(), systemDark);
+  const current = pending ?? getTheme() ?? resolveTheme(readStored(), systemDark);
   const { next, stored } = storedAfterToggle(current, systemDark);
   try {
     if (stored) localStorage.setItem(STORAGE_KEY, stored);
@@ -81,7 +137,7 @@ export function toggleTheme(): Theme {
   } catch {
     // Storage is unavailable; the theme still applies for this page view.
   }
-  applyTheme(next);
+  revealTheme(next, origin);
   return next;
 }
 
