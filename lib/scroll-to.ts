@@ -22,7 +22,10 @@ export function scrollToSection(hash: string) {
   if (!target) return;
 
   if (instance) {
-    instance.scrollTo(target as HTMLElement, { offset: HEADER_OFFSET });
+    // No offset: Lenis already honours the section's scroll-margin-top (3.5rem,
+    // the header height). Passing HEADER_OFFSET as well landed every menu click
+    // 56px too low, measured at 112px below the viewport top instead of 56px.
+    instance.scrollTo(target as HTMLElement);
   } else {
     const top =
       (target as HTMLElement).getBoundingClientRect().top +

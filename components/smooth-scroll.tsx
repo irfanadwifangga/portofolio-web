@@ -48,7 +48,18 @@ export function SmoothScroll() {
     };
 
     document.addEventListener("click", onClick);
+
+    // A hash in the URL on load — a shared link, or the language toggle carrying
+    // the reader's section across — is jumped to natively before hydration, and
+    // then drifts: sections above it change height once client components mount
+    // (the project stack swaps its fallback grid for the card stack). Re-aim
+    // once, without animation, after that has settled. Lenis applies the
+    // section's scroll-margin-top itself, so no header offset is passed.
+    const target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+    const settleTimer = target ? window.setTimeout(() => lenis.scrollTo(target, { immediate: true }), 400) : 0;
+
     return () => {
+      window.clearTimeout(settleTimer);
       document.removeEventListener("click", onClick);
       cancelAnimationFrame(raf);
       lenis.destroy();
