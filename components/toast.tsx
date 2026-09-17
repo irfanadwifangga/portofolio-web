@@ -84,7 +84,15 @@ const BORDER_COLOR: Record<ToastVariant, string> = {
   info: "border-accent/20",
 };
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+const DEFAULT_LABELS = { region: "Notifications", dismiss: "Dismiss" };
+
+export function ToastProvider({
+  children,
+  labels = DEFAULT_LABELS
+}: {
+  children: React.ReactNode;
+  labels?: { region: string; dismiss: string };
+}) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
   const addToast = React.useCallback(
@@ -114,7 +122,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {/* Toast container — bottom-right, stacks upward */}
       <div
         aria-live="polite"
-        aria-label="Notifications"
+        aria-label={labels.region}
         className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-3 pointer-events-none"
       >
         <AnimatePresence mode="popLayout">
@@ -135,7 +143,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismiss(t.id)}
-                aria-label="Dismiss"
+                aria-label={labels.dismiss}
                 className="ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted transition-colors hover:text-foreground"
               >
                 <svg

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { followSystem, toggleTheme } from "@/lib/theme";
+import type { Dictionary } from "@/lib/i18n";
 import { useTheme } from "@/lib/use-theme";
 
 const ICON_CLASS =
@@ -16,23 +17,19 @@ const ICON_CLASS =
  * They carry data-theme-motion so the swap rule in globals.css leaves their
  * cross-fade running.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ labels }: { labels: Dictionary["theme"] }) {
   const theme = useTheme();
 
   // Nav, and therefore this button, is on every page, so following OS theme
   // changes lives here rather than in a component of its own.
   React.useEffect(() => followSystem(), []);
 
-  const label =
-    theme === null
-      ? "Switch color theme"
-      : theme === "dark"
-        ? "Switch to light theme"
-        : "Switch to dark theme";
+  const label = theme === null ? labels.unknown : theme === "dark" ? labels.toLight : labels.toDark;
 
   return (
     <button
       type="button"
+      data-theme-toggle
       onClick={() => toggleTheme()}
       aria-label={label}
       className="relative -m-2.5 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-muted transition-[color,scale] duration-150 ease-out hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none active:scale-[0.96]">

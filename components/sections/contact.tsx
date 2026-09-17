@@ -2,6 +2,8 @@ import { SectionEntrance } from "@/components/section-entrance";
 import { Reveal } from "@/components/reveal";
 import { ContactForm } from "@/components/contact-form";
 import { Github, Linkedin } from "@thesvg/react";
+import { getDictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/locales";
 
 const PROFILES = [
   {
@@ -42,18 +44,17 @@ function ExternalArrow() {
  * messages directly to the inbox via a server action. The social profiles
  * remain as quiet secondary links below the form.
  */
-export function Contact() {
+export function Contact({ locale }: { locale: Locale }) {
+  const dictionary = getDictionary(locale);
+  const t = dictionary.contact;
+
   return (
     <section id="contact" className="border-t border-border">
-      <SectionEntrance
-        index="06"
-        title="Let's talk"
-        description="Bandar Lampung, Indonesia. Open to remote fullstack roles — backend-first — and open to discussing relocation for the right one."
-      />
+      <SectionEntrance index="06" title={t.title} description={t.description} />
 
       <div className="mx-auto max-w-6xl px-6 pb-24">
         <Reveal>
-          <ContactForm />
+          <ContactForm locale={locale} copy={t.form} />
         </Reveal>
 
         <Reveal delay={0.08}>
@@ -68,7 +69,7 @@ export function Contact() {
                 <Icon width={16} height={16} aria-hidden className="shrink-0 [&_*]:fill-current" />
                 {label}
                 <ExternalArrow />
-                <span className="sr-only">(opens in a new tab)</span>
+                <span className="sr-only">{dictionary.common.newTab}</span>
               </a>
             ))}
           </div>
@@ -79,7 +80,7 @@ export function Contact() {
             <span aria-hidden className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/70 light:bg-emerald-600" />
             </span>
-            Available for new work
+            {t.available}
           </p>
         </Reveal>
       </div>

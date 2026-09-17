@@ -45,3 +45,9 @@ next-env.d.ts
 
 # theme audit output (screenshots and report)
 /.theme-audit/
+
+# i18n snapshots (English page text before and after a refactor)
+/.i18n-check/
+
+# performance probe output
+/.perf/

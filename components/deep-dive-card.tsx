@@ -1,8 +1,8 @@
 import { TechIcon } from "@/components/tech-icon";
-import type { DeepDive } from "@/lib/content";
+import type { ResolvedDeepDive } from "@/lib/i18n/resolve";
 
 /**
- * One problem-and-approach write-up.
+ * One problem-and-approach write-up, already resolved to one language.
  *
  * Shared by the client-work grid and the side project section, so the two read
  * as the same kind of evidence. `showProject` is off inside the side project
@@ -13,7 +13,7 @@ export function DeepDiveCard({
   dive,
   showProject = true
 }: {
-  dive: DeepDive;
+  dive: ResolvedDeepDive;
   showProject?: boolean;
 }) {
   return (

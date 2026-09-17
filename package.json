@@ -12,7 +12,9 @@
     "lint": "eslint",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"tests/**/*.test.mjs\"",
     "check:colors": "node scripts/check-colors.mjs",
-    "audit:theme": "node scripts/theme-audit.mjs"
+    "audit:theme": "node scripts/theme-audit.mjs",
+    "check:i18n": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-locale-leaks.mjs",
+    "perf:probe": "node scripts/perf-probe.mjs"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

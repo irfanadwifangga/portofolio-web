@@ -38,10 +38,23 @@ const MARK_MIN = 3;
 // Owner decision: Django keeps its brand green (#44b78b, about 2.5:1 on the
 // light page) rather than a darker stand-in.
 const MARK_EXEMPT = new Set(["Django REST Framework", "Django REST"]);
-const TOGGLE = 'button[aria-label^="Switch"]';
+// Found by attribute: the aria-label is translated on /id.
+const TOGGLE = "[data-theme-toggle]";
 // Vercel Web Analytics serves its script only on Vercel deployments. Locally it
 // 404s on every page load in either theme, so it is not a finding here.
 const IGNORED_CONSOLE = [/\/_vercel\/insights\//];
+// The home page in each language. English keeps its unsuffixed screenshot names.
+const PAGES = [
+  { path: "/", suffix: "" },
+  { path: "/id", suffix: "-id" }
+];
+// The 404 page answers with status 404 on purpose, and the browser logs that
+// as a failed resource; ignored only while these pages load.
+const NOT_FOUND_PAGES = [
+  { path: "/nope", locale: "en" },
+  { path: "/id/nope", locale: "id" }
+];
+let expectNotFound = false;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -523,9 +536,20 @@ async function behaviour(page) {
   await sleep(1000);
   const whileOpen = await page.evaluate(`(() => {
     const actions = document.querySelector(".sm-header-actions");
-    return actions ? { inert: actions.inert, visibility: getComputedStyle(actions).visibility } : null;
+    return actions
+      ? {
+          inert: actions.inert,
+          visibility: getComputedStyle(actions).visibility,
+          holdsLanguageToggle: Boolean(actions.querySelector("[data-language-toggle]")),
+          holdsThemeToggle: Boolean(actions.querySelector("[data-theme-toggle]"))
+        }
+      : null;
   })()`);
-  check("the toggle is hidden and inert while the menu is open", whileOpen?.inert && whileOpen.visibility === "hidden", whileOpen);
+  check(
+    "both header toggles are hidden and inert while the menu is open",
+    whileOpen?.inert && whileOpen.visibility === "hidden" && whileOpen.holdsLanguageToggle && whileOpen.holdsThemeToggle,
+    whileOpen
+  );
   await page.evaluate("document.querySelector('.sm-toggle').click()");
   await sleep(800);
 
@@ -540,47 +564,78 @@ async function matrix(page, report) {
     });
     for (const viewport of VIEWPORTS) {
       const { width } = viewport;
-      const tag = `${theme}-${width}`;
-      const save = (image, name) => {
-        if (!image) return;
-        writeFileSync(join(OUT, `${tag}-${name}.png`), image);
-        report.screenshots++;
-      };
       await page.send("Emulation.setDeviceMetricsOverride", {
         width,
         height: viewport.height,
         deviceScaleFactor: 1,
         mobile: viewport.mobile
       });
-      await load(page, TARGET);
-      const applied = await page.evaluate("document.documentElement.dataset.theme ?? null");
-      report.behaviour.push({ name: `${tag}: stored theme applied on load`, pass: applied === theme, detail: applied });
 
-      save(await auditRegion(page, report, { theme, width, name: "header", selector: ".staggered-menu-header" }), "header");
+      for (const { path, suffix } of PAGES) {
+        const tag = `${theme}-${width}${suffix}`;
+        const region = (label) => (suffix ? `${label} ${path}` : label);
+        const save = (image, name) => {
+          if (!image) return;
+          writeFileSync(join(OUT, `${tag}-${name}.png`), image);
+          report.screenshots++;
+        };
 
-      for (const id of SECTIONS) {
-        await page.evaluate(`(async () => {
-          const section = document.getElementById(${JSON.stringify(id)});
-          if (!section) return;
-          const top = section.getBoundingClientRect().top + scrollY - 56;
-          for (let y = top; y < top + section.offsetHeight; y += innerHeight * 0.6) {
-            window.scrollTo(0, y);
-            await new Promise((resolve) => setTimeout(resolve, 250));
-          }
-          window.scrollTo(0, top);
-        })()`);
-        await settle(page, `#${id}`, { report, theme, width });
-        save(await auditRegion(page, report, { theme, width, name: `#${id}`, selector: `#${id}` }), id);
+        await load(page, new URL(path, TARGET).href);
+        const applied = await page.evaluate("document.documentElement.dataset.theme ?? null");
+        report.behaviour.push({ name: `${tag}: stored theme applied on load`, pass: applied === theme, detail: applied });
+
+        save(await auditRegion(page, report, { theme, width, name: region("header"), selector: ".staggered-menu-header" }), "header");
+
+        for (const id of SECTIONS) {
+          await page.evaluate(`(async () => {
+            const section = document.getElementById(${JSON.stringify(id)});
+            if (!section) return;
+            const top = section.getBoundingClientRect().top + scrollY - 56;
+            for (let y = top; y < top + section.offsetHeight; y += innerHeight * 0.6) {
+              window.scrollTo(0, y);
+              await new Promise((resolve) => setTimeout(resolve, 250));
+            }
+            window.scrollTo(0, top);
+          })()`);
+          await settle(page, `#${id}`, { report, theme, width });
+          save(await auditRegion(page, report, { theme, width, name: region(`#${id}`), selector: `#${id}` }), id);
+        }
+
+        await page.evaluate("window.scrollTo(0, 0); document.querySelector('.sm-toggle')?.click()");
+        await sleep(600);
+        await settle(page, ".staggered-menu-panel", { report, theme, width });
+        await auditRegion(page, report, { theme, width, name: region("menu panel"), selector: ".staggered-menu-panel" });
+        save(await capture(page, { x: 0, y: 0, width, height: viewport.height }), "menu");
+        await page.evaluate("document.querySelector('.sm-toggle')?.click()");
+        await sleep(700);
       }
-
-      await page.evaluate("window.scrollTo(0, 0); document.querySelector('.sm-toggle')?.click()");
-      await sleep(600);
-      await settle(page, ".staggered-menu-panel", { report, theme, width });
-      await auditRegion(page, report, { theme, width, name: "menu panel", selector: ".staggered-menu-panel" });
-      save(await capture(page, { x: 0, y: 0, width, height: viewport.height }), "menu");
-      await page.evaluate("document.querySelector('.sm-toggle')?.click()");
-      await sleep(700);
     }
+
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    for (const { path, locale } of NOT_FOUND_PAGES) {
+      const tag = `${theme}-1440-404-${locale}`;
+      expectNotFound = true;
+      await load(page, new URL(path, TARGET).href);
+      const state = await page.evaluate(`({
+        lang: document.documentElement.lang,
+        theme: document.documentElement.dataset.theme ?? null,
+        visible: [...document.querySelectorAll("[data-locale]")]
+          .filter((el) => getComputedStyle(el).display !== "none")
+          .map((el) => el.dataset.locale)
+      })`);
+      report.behaviour.push({
+        name: `${tag}: language and theme resolved before paint`,
+        pass: state.lang === locale && state.theme === theme && state.visible.join() === locale,
+        detail: state
+      });
+      const image = await auditRegion(page, report, { theme, width: 1440, name: `404 ${path}`, selector: `[data-locale="${locale}"]` });
+      if (image) {
+        writeFileSync(join(OUT, `${tag}.png`), image);
+        report.screenshots++;
+      }
+      expectNotFound = false;
+    }
+
     await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
   }
 }
@@ -608,6 +663,7 @@ async function main() {
   };
   const noteConsole = (type, text) => {
     if (IGNORED_CONSOLE.some((pattern) => pattern.test(text))) return;
+    if (expectNotFound && /status of 404/.test(text)) return;
     report.console.push({ type, text: text.slice(0, 300) });
   };
 

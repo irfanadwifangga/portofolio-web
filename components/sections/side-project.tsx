@@ -6,6 +6,10 @@ import { Reveal } from "@/components/reveal";
 import { TechIcon } from "@/components/tech-icon";
 import { DeepDiveCard } from "@/components/deep-dive-card";
 import { sideProject } from "@/lib/content";
+import { getDictionary } from "@/lib/i18n";
+import { formatPeriod } from "@/lib/i18n/format";
+import { fill, type Locale } from "@/lib/i18n/locales";
+import { resolveDeepDive } from "@/lib/i18n/resolve";
 
 /** Arrow-up-right, matching the external links in the contact section. */
 function ExternalArrow() {
@@ -37,17 +41,15 @@ function ExternalArrow() {
  * which for this statically prerendered page means once, at build time.
  * Without it the copy takes the width instead of framing a broken image.
  */
-export function SideProject() {
+export function SideProject({ locale }: { locale: Locale }) {
+  const dictionary = getDictionary(locale);
+  const t = dictionary.sideProject;
   const p = sideProject;
   const hasImage = existsSync(join(process.cwd(), "public", p.image));
 
   return (
     <section id="side-project" className="border-t border-border">
-      <SectionEntrance
-        index="03"
-        title="Side project"
-        description="Built on my own time, held to the same standard as client work."
-      />
+      <SectionEntrance index="03" title={t.title} description={t.description} />
 
       <div className="mx-auto max-w-6xl px-6 pb-24">
         <Reveal>
@@ -65,7 +67,7 @@ export function SideProject() {
                 <div className="relative aspect-[1920/1032]">
                   <Image
                     src={p.image}
-                    alt={`${p.name} desktop app, showing the conversion screen and its job queue`}
+                    alt={fill(t.imageAlt, { name: p.name })}
                     fill
                     sizes="(min-width: 1152px) 620px, (min-width: 1024px) 55vw, 100vw"
                     className="object-cover object-top"
@@ -77,14 +79,14 @@ export function SideProject() {
             <div className="min-w-0">
               <div className="flex items-baseline justify-between gap-4">
                 <h3 className="font-mono text-base font-medium">{p.name}</h3>
-                <span className="font-mono text-xs text-muted-2">{p.period}</span>
+                <span className="font-mono text-xs text-muted-2">{formatPeriod(p.period, locale)}</span>
               </div>
-              <p className="mt-2 text-sm text-accent">{p.tagline}</p>
+              <p className="mt-2 text-sm text-accent">{p.tagline[locale]}</p>
 
-              <p className="mt-5 text-sm leading-relaxed text-muted">{p.summary}</p>
+              <p className="mt-5 text-sm leading-relaxed text-muted">{p.summary[locale]}</p>
 
               <ul className="mt-5 space-y-2">
-                {p.highlights.map((h) => (
+                {p.highlights[locale].map((h) => (
                   <li key={h} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
                     <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent" />
                     {h}
@@ -103,9 +105,9 @@ export function SideProject() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group mt-6 inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 font-mono text-sm text-foreground transition-colors duration-150 ease-out hover:border-accent focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none">
-                View source on GitHub
+                {t.viewSource}
                 <ExternalArrow />
-                <span className="sr-only">(opens in a new tab)</span>
+                <span className="sr-only">{dictionary.common.newTab}</span>
               </a>
             </div>
           </div>
@@ -114,8 +116,8 @@ export function SideProject() {
         <Reveal delay={0.06}>
           <dl className="mt-12 grid grid-cols-2 gap-6 border-y border-border py-7 sm:grid-cols-4">
             {p.facts.map((f) => (
-              <div key={f.label} className="flex flex-col-reverse gap-1">
-                <dt className="font-mono text-xs text-muted-2">{f.label}</dt>
+              <div key={f.label.en} className="flex flex-col-reverse gap-1">
+                <dt className="font-mono text-xs text-muted-2">{f.label[locale]}</dt>
                 <dd className="font-mono text-2xl font-medium tracking-tight text-foreground">
                   {f.value}
                 </dd>
@@ -126,8 +128,8 @@ export function SideProject() {
 
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {p.dives.map((d, i) => (
-            <Reveal key={d.title} delay={0.1 + i * 0.06}>
-              <DeepDiveCard dive={d} showProject={false} />
+            <Reveal key={d.title.en} delay={0.1 + i * 0.06}>
+              <DeepDiveCard dive={resolveDeepDive(d, locale)} showProject={false} />
             </Reveal>
           ))}
         </div>

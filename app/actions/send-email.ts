@@ -1,6 +1,9 @@
 "use server";
 
 import nodemailer from "nodemailer";
+import { validateContact, type ContactPayload } from "@/lib/contact-validation";
+import { getDictionary } from "@/lib/i18n";
+import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/locales";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -9,13 +12,6 @@ import nodemailer from "nodemailer";
 interface SendEmailResult {
   ok: boolean;
   message: string;
-}
-
-interface FormPayload {
-  name: string;
-  email: string;
-  subject: string;
-  body: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -40,24 +36,6 @@ function isRateLimited(ip: string): boolean {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Validation                                                                */
-/* -------------------------------------------------------------------------- */
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function validate(data: FormPayload): string | null {
-  if (!data.name.trim()) return "Name is required.";
-  if (data.name.length > 100) return "Name is too long.";
-  if (!EMAIL_RE.test(data.email)) return "Please enter a valid email address.";
-  if (data.email.length > 320) return "Email address is too long.";
-  if (!data.subject.trim()) return "Subject is required.";
-  if (data.subject.length > 200) return "Subject is too long.";
-  if (!data.body.trim()) return "Message is required.";
-  if (data.body.length > 5000) return "Message is too long (max 5 000 chars).";
-  return null;
-}
-
-/* -------------------------------------------------------------------------- */
 /*  Transporter                                                               */
 /* -------------------------------------------------------------------------- */
 
@@ -75,26 +53,35 @@ function createTransport() {
 /*  Server Action                                                             */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Sends the contact form to the owner's inbox.
+ *
+ * `locale` picks the language of the message shown back to the visitor. It
+ * comes from the client, so anything that is not a known locale falls back to
+ * English. The email itself stays English and says which language the visitor
+ * wrote from, so the owner knows how to reply.
+ */
 export async function sendEmail(
-  payload: FormPayload
+  locale: string,
+  payload: ContactPayload
 ): Promise<SendEmailResult> {
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const t = getDictionary(lang).contact.server;
+
   /* --- env guard --- */
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
     console.error("[send-email] Missing GMAIL_USER or GMAIL_APP_PASSWORD");
-    return { ok: false, message: "Mail service is not configured." };
+    return { ok: false, message: t.notConfigured };
   }
 
   /* --- validation --- */
-  const error = validate(payload);
-  if (error) return { ok: false, message: error };
+  const error = validateContact(payload);
+  if (error) return { ok: false, message: t[error] };
 
   /* --- rate limit (best-effort — no real IP in dev) --- */
   const ip = payload.email; // use sender email as key since we don't have req headers in Server Actions
   if (isRateLimited(ip)) {
-    return {
-      ok: false,
-      message: "You've sent a message recently. Please wait a minute.",
-    };
+    return { ok: false, message: t.rateLimited };
   }
 
   /* --- send --- */
@@ -108,6 +95,7 @@ export async function sendEmail(
       text: [
         `From: ${payload.name} <${payload.email}>`,
         `Subject: ${payload.subject}`,
+        `Language: ${lang}`,
         "",
         payload.body,
       ].join("\n"),
@@ -123,6 +111,7 @@ export async function sendEmail(
             <a href="mailto:${payload.email}" style="color: #6b7280; text-decoration: none;">${payload.email}</a>
           </p>
           <p style="margin: 6px 0 0; font-size: 13px; color: #9ca3af;">${payload.subject}</p>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #9ca3af;">Language: ${lang}</p>
 
           <!-- Divider -->
           <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;" />
@@ -137,12 +126,9 @@ export async function sendEmail(
       `,
     });
 
-    return { ok: true, message: "Message sent! I'll get back to you soon." };
+    return { ok: true, message: t.sent };
   } catch (err) {
     console.error("[send-email]", err);
-    return {
-      ok: false,
-      message: "Failed to send message. Please try again later.",
-    };
+    return { ok: false, message: t.failed };
   }
 }

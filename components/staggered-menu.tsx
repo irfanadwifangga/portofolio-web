@@ -18,6 +18,8 @@
 //  7. `headerActions` slot, rendered left of the Menu toggle (the theme
 //     toggle). It is hidden and `inert` while the panel is open, because the
 //     panel covers the right of the header and the Menu toggle travels across.
+//  8. `labels` prop for every built-in string (toggle text, aria labels, the
+//     socials heading), so the menu can render in another language.
 "use client";
 
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
@@ -32,8 +34,29 @@ export interface StaggeredMenuSocialItem {
   label: string;
   link: string;
 }
+export interface StaggeredMenuLabels {
+  menu: string;
+  close: string;
+  openAria: string;
+  closeAria: string;
+  header: string;
+  socialsTitle: string;
+  socialsAria: string;
+}
+
+const DEFAULT_LABELS: StaggeredMenuLabels = {
+  menu: "Menu",
+  close: "Close",
+  openAria: "Open menu",
+  closeAria: "Close menu",
+  header: "Main navigation header",
+  socialsTitle: "Elsewhere",
+  socialsAria: "Social links"
+};
+
 export interface StaggeredMenuProps {
   position?: "left" | "right";
+  labels?: StaggeredMenuLabels;
   colors?: string[];
   items?: StaggeredMenuItem[];
   socialItems?: StaggeredMenuSocialItem[];
@@ -54,6 +77,7 @@ export interface StaggeredMenuProps {
 
 export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   position = "right",
+  labels = DEFAULT_LABELS,
   colors = ["#B497CF", "#5227FF"],
   items = [],
   socialItems = [],
@@ -84,7 +108,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 
   const textInnerRef = useRef<HTMLSpanElement | null>(null);
   const textWrapRef = useRef<HTMLSpanElement | null>(null);
-  const [textLines, setTextLines] = useState<string[]>(["Menu", "Close"]);
+  const [textLines, setTextLines] = useState<string[]>([labels.menu, labels.close]);
 
   const openTlRef = useRef<gsap.core.Timeline | null>(null);
   const closeTweenRef = useRef<gsap.core.Tween | null>(null);
@@ -355,14 +379,14 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 
     textCycleAnimRef.current?.kill();
 
-    const currentLabel = opening ? "Menu" : "Close";
-    const targetLabel = opening ? "Close" : "Menu";
+    const currentLabel = opening ? labels.menu : labels.close;
+    const targetLabel = opening ? labels.close : labels.menu;
     const cycles = 3;
 
     const seq: string[] = [currentLabel];
     let last = currentLabel;
     for (let i = 0; i < cycles; i++) {
-      last = last === "Menu" ? "Close" : "Menu";
+      last = last === labels.menu ? labels.close : labels.menu;
       seq.push(last);
     }
     if (last !== targetLabel) seq.push(targetLabel);
@@ -379,7 +403,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       duration: 0.5 + lineCount * 0.07,
       ease: "power4.out"
     });
-  }, []);
+  }, [labels.menu, labels.close]);
 
   const toggleMenu = useCallback(() => {
     const target = !openRef.current;
@@ -495,7 +519,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 
         <header
           className="staggered-menu-header pointer-events-none absolute top-0 left-0 z-20 w-full"
-          aria-label="Main navigation header">
+          aria-label={labels.header}>
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
             <div className="sm-logo pointer-events-auto flex items-center select-none">{logo}</div>
 
@@ -509,7 +533,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
               <button
                 ref={toggleBtnRef}
                 className="sm-toggle pointer-events-auto relative -m-2.5 inline-flex cursor-pointer items-center gap-[0.4rem] overflow-visible border-0 bg-transparent p-2.5 font-mono text-sm leading-none font-medium transition-[scale] duration-150 ease-out active:scale-[0.96]"
-                aria-label={open ? "Close menu" : "Open menu"}
+                aria-label={open ? labels.closeAria : labels.openAria}
                 aria-expanded={open}
                 aria-controls="staggered-menu-panel"
                 onClick={toggleMenu}
@@ -591,8 +615,8 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
             {displaySocials && socialItems && socialItems.length > 0 && (
               <div
                 className="sm-socials mt-auto flex flex-col gap-3 pt-8"
-                aria-label="Social links">
-                <h3 className="sm-socials-title m-0 text-base font-medium">Elsewhere</h3>
+                aria-label={labels.socialsAria}>
+                <h3 className="sm-socials-title m-0 text-base font-medium">{labels.socialsTitle}</h3>
                 <ul
                   className="sm-socials-list m-0 flex list-none flex-row flex-wrap items-center gap-4 p-0"
                   role="list">

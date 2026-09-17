@@ -5,10 +5,15 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import { Reveal } from "@/components/reveal";
 import CardSwap, { Card } from "@/components/card-swap";
-import { projects } from "@/lib/content";
+import { fill } from "@/lib/i18n/locales";
+import type { ResolvedProject } from "@/lib/i18n/resolve";
 import { useMediaQuery } from "@/lib/use-mounted";
 
 export interface CurrentlyBuildingViewProps {
+  /** The projects, already resolved to one language by the server parent. */
+  projects: ResolvedProject[];
+  /** `showing` fills {name} {index} {total}; `imageAlt` fills {name} {role}. */
+  copy: { showing: string; imageAlt: string };
   /**
    * One finished row of tech marks per project, in the same order as
    * `projects`. Rendered by the server parent because @thesvg/react bundles
@@ -28,7 +33,7 @@ export interface CurrentlyBuildingViewProps {
  * one on top. Below lg the stack has nowhere to go, so it falls back to a plain
  * list of cards — the same information without the 3D.
  */
-export function CurrentlyBuildingView({ techRows }: CurrentlyBuildingViewProps) {
+export function CurrentlyBuildingView({ projects, techRows, copy }: CurrentlyBuildingViewProps) {
   const [active, setActive] = React.useState(0);
   const project = projects[active] ?? projects[0];
   // Mounted, not merely hidden: `hidden lg:grid` would still leave the gsap
@@ -94,7 +99,7 @@ export function CurrentlyBuildingView({ techRows }: CurrentlyBuildingViewProps) 
                   ))}
                 </div>
                 <p className="sr-only" aria-live="polite">
-                  Showing {project.name}, {active + 1} of {projects.length}
+                  {fill(copy.showing, { name: project.name, index: active + 1, total: projects.length })}
                 </p>
               </div>
             </Reveal>
@@ -128,7 +133,7 @@ export function CurrentlyBuildingView({ techRows }: CurrentlyBuildingViewProps) 
                         emits proper 1x/2x candidates instead. */}
                       <Image
                         src={p.image}
-                        alt={`${p.name} — ${p.role}`}
+                        alt={fill(copy.imageAlt, { name: p.name, role: p.role })}
                         width={840}
                         height={402}
                         className="h-full w-full object-contain"
@@ -148,7 +153,7 @@ export function CurrentlyBuildingView({ techRows }: CurrentlyBuildingViewProps) 
                   <div className="relative aspect-[2.09] border-b border-border">
                     <Image
                       src={p.image}
-                      alt={`${p.name} — ${p.role}`}
+                      alt={fill(copy.imageAlt, { name: p.name, role: p.role })}
                       fill
                       sizes="(min-width: 640px) 50vw, 100vw"
                       className="object-cover object-top"

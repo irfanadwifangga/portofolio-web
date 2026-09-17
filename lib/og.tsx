@@ -1,30 +1,22 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  SITE_NAME,
-  SITE_TAGLINE,
-  SITE_HOST,
-  SITE_LOCATION,
-} from "@/lib/site";
+import { getDictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/locales";
+import { SITE_HOST, SITE_LOCATION, SITE_NAME } from "@/lib/site";
 
-// Comma, not a dash — SITE_TAGLINE already contains an em-dash, and joining
+export const OG_SIZE = { width: 1200, height: 630 };
+
+// Comma, not a dash — the tagline already contains an em-dash, and joining
 // with a second one reads as a broken string in screen-reader output.
-export const alt = `${SITE_NAME}, ${SITE_TAGLINE}`;
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-
-/** Kept short on purpose: three chips have to fit one 1040px row at 20px mono. */
-const SPECIALTIES = [
-  "Payment-critical systems",
-  "Real-time integrations",
-  "REST APIs",
-];
+export function ogAlt(locale: Locale): string {
+  return `${SITE_NAME}, ${getDictionary(locale).meta.tagline}`;
+}
 
 /**
  * The card that renders when the link is pasted into LinkedIn, WhatsApp, Slack
- * or X. Generated at build time rather than shipped as a static PNG so the name
- * and domain can never drift from lib/site.ts.
+ * or X, in one language. Generated at build time rather than shipped as a
+ * static PNG so the name and domain can never drift from lib/site.ts.
  *
  * Fonts are read off disk as raw buffers because Satori — the renderer behind
  * ImageResponse — does not read CSS and cannot use next/font. It accepts TTF,
@@ -36,7 +28,8 @@ const SPECIALTIES = [
  * quietly breaks the row's alignment, which is why the single-line items carry
  * flexShrink: 0 and nowrap rather than relying on the row being wide enough.
  */
-export default async function OpengraphImage() {
+export async function renderOgImage(locale: Locale): Promise<ImageResponse> {
+  const { tagline, ogSpecialties } = getDictionary(locale).meta;
   const [sans, mono] = await Promise.all([
     readFile(
       join(process.cwd(), "node_modules/geist/dist/fonts/geist-sans/Geist-Medium.ttf"),
@@ -141,12 +134,12 @@ export default async function OpengraphImage() {
               whiteSpace: "nowrap",
             }}
           >
-            {SITE_TAGLINE}
+            {tagline}
           </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center" }}>
-          {SPECIALTIES.map((s) => (
+          {ogSpecialties.map((s) => (
             <div
               key={s}
               style={{
@@ -170,7 +163,7 @@ export default async function OpengraphImage() {
       </div>
     ),
     {
-      ...size,
+      ...OG_SIZE,
       fonts: [
         { name: "Geist", data: sans, style: "normal", weight: 500 },
         { name: "JetBrains Mono", data: mono, style: "normal", weight: 400 },

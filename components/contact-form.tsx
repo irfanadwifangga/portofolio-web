@@ -4,6 +4,8 @@ import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { sendEmail } from "@/app/actions/send-email";
 import { useToast } from "@/components/toast";
+import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/locales";
 
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                 */
@@ -82,7 +84,13 @@ function ComposeIcon() {
 /*  Component                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export function ContactForm() {
+export function ContactForm({
+  locale,
+  copy
+}: {
+  locale: Locale;
+  copy: Dictionary["contact"]["form"];
+}) {
   const { toast } = useToast();
   const [form, setForm] = React.useState(INITIAL);
   const [errors, setErrors] = React.useState<Partial<Record<Field, string>>>(
@@ -107,12 +115,12 @@ export function ContactForm() {
 
   const validateAll = (): boolean => {
     const next: Partial<Record<Field, string>> = {};
-    if (!form.name.trim()) next.name = "Name is required";
-    if (!form.email.trim()) next.email = "Email is required";
+    if (!form.name.trim()) next.name = copy.errors.nameRequired;
+    if (!form.email.trim()) next.email = copy.errors.emailRequired;
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      next.email = "Invalid email";
-    if (!form.subject.trim()) next.subject = "Subject is required";
-    if (!form.body.trim()) next.body = "Message is required";
+      next.email = copy.errors.emailInvalid;
+    if (!form.subject.trim()) next.subject = copy.errors.subjectRequired;
+    if (!form.body.trim()) next.body = copy.errors.bodyRequired;
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -124,7 +132,7 @@ export function ContactForm() {
     if (sending || !validateAll()) return;
     setSending(true);
     try {
-      const result = await sendEmail(form);
+      const result = await sendEmail(locale, form);
       if (result.ok) {
         toast(result.message, "success");
         setForm(INITIAL);
@@ -134,7 +142,7 @@ export function ContactForm() {
         toast(result.message, "error");
       }
     } catch {
-      toast("Something went wrong. Please try again.", "error");
+      toast(copy.unexpected, "error");
     } finally {
       setSending(false);
     }
@@ -161,34 +169,34 @@ export function ContactForm() {
         <div className="flex items-center gap-2.5 border-b border-border bg-surface-2 px-5 py-3">
           <ComposeIcon />
           <span className="font-mono text-sm text-foreground">
-            New Message
+            {copy.title}
           </span>
         </div>
 
         {/* ---- Fields ---- */}
         <div className="divide-y divide-border">
           <FormField
-            label="From"
+            label={copy.from}
             type="text"
-            placeholder="Your name"
+            placeholder={copy.namePlaceholder}
             value={form.name}
             onChange={set("name")}
             error={errors.name}
             autoComplete="name"
           />
           <FormField
-            label="Email"
+            label={copy.email}
             type="email"
-            placeholder="your@email.com"
+            placeholder={copy.emailPlaceholder}
             value={form.email}
             onChange={set("email")}
             error={errors.email}
             autoComplete="email"
           />
           <FormField
-            label="Subject"
+            label={copy.subject}
             type="text"
-            placeholder="What's on your mind?"
+            placeholder={copy.subjectPlaceholder}
             value={form.subject}
             onChange={set("subject")}
             error={errors.subject}
@@ -198,7 +206,7 @@ export function ContactForm() {
         {/* ---- Message body ---- */}
         <div className="relative">
           <textarea
-            placeholder="Write your message here..."
+            placeholder={copy.bodyPlaceholder}
             value={form.body}
             onChange={set("body")}
             rows={6}
@@ -270,11 +278,11 @@ export function ContactForm() {
                 </motion.span>
               )}
             </AnimatePresence>
-            {sending ? "Sending..." : sent ? "Sent!" : "Send Message"}
+            {sending ? copy.sending : sent ? copy.sent : copy.send}
           </button>
 
           <span className="hidden font-mono text-xs text-muted-2 sm:block">
-            Ctrl + Enter
+            {copy.shortcut}
           </span>
         </div>
       </div>

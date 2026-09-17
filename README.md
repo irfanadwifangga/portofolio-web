@@ -71,11 +71,15 @@ fresh install working anywhere the optional dependency is skipped instead.
 ## Project structure
 
 ```
-app/                    — layout, page, global styles, favicon set
+app/(en)/               — English root: layout, page and social card, served at /
+app/id/                 — Indonesian root: layout, page and social card, served at /id
+app/global-not-found.tsx — the 404 page for every unmatched URL, in both languages
+app/global-styles.ts    — global CSS and font imports shared by every root
 app/actions/            — server actions (contact form delivery)
-app/sitemap.ts          — sitemap.xml
+app/sitemap.ts          — sitemap.xml, both languages
 app/robots.ts           — robots.txt
-app/opengraph-image.tsx — social card, generated at build time
+proxy.ts                — sends first-time visitors in Indonesia from / to /id
+lib/i18n/               — locales, dictionaries, date formatting, metadata
 components/             — shared UI
 components/sections/    — one file per page section
 lib/                    — site constants, content data, icon maps, snippets, hooks
@@ -93,8 +97,9 @@ real bugs.
 
 | What | Where |
 | --- | --- |
-| Domain, name, tagline, description | `lib/site.ts` |
-| Project cards & case studies | `lib/content.ts` |
+| Domain, name, location | `lib/site.ts` |
+| Title, tagline, description and all UI copy, in both languages | `lib/i18n/dictionaries/en.ts`, `lib/i18n/dictionaries/id.ts` |
+| Project cards & case studies (`{ en, id }` on every text field) | `lib/content.ts` |
 | Side project, its figures & case studies | `lib/content.ts` (`sideProject`) |
 | Side project screenshot (optional) | `public/project/yt-to-mp3.png` |
 | Tech stack groups | `lib/tech-stack.tsx` |
@@ -105,6 +110,37 @@ real bugs.
 `lib/site.ts` is the single source for anything that names the site. Metadata,
 canonical URL, sitemap, robots and the Open Graph image all read from it — the
 domain is deliberately not written out anywhere else.
+
+## Languages
+
+The site is English at `/` and Indonesian at `/id`. Both are static pages built
+from the same components (`components/home.tsx`) with a `locale` prop.
+`app/(en)` and `app/id` are separate root layouts, so each page ships its own
+`<html lang>`, canonical URL, `hreflang` links and social card.
+
+- **UI copy** lives in `lib/i18n/dictionaries/en.ts` and `id.ts`.
+  - `id.ts` is typed against the English file, so a missing key fails `tsc`.
+  - `bun run test` fails on an untranslated value, unless that value is listed in `lib/i18n/same-in-both.ts`.
+- **Project, experience and case-study text** lives in `lib/content.ts`, with `{ en, id }` on each text field. Dates are `{ start, end }` values, formatted per language.
+- **Client components never import a dictionary.** They receive their strings as props, which keeps both languages out of the JavaScript bundle.
+- **`proxy.ts` runs for `/` only.**
+  - A `lang` cookie, set by the header language button, wins.
+  - Crawlers and link previews get English.
+  - Otherwise, a visitor whose Vercel IP country is `ID` is redirected to `/id`.
+  - `/id` itself is never redirected.
+- **`app/global-not-found.tsx`** answers every unmatched URL with a 404.
+  - It contains both languages and shows Indonesian for paths under `/id/`, decided before first paint.
+  - It needs `experimental.globalNotFound` in `next.config.ts`; recheck it when upgrading Next.
+
+After changing copy:
+
+```bash
+bun run test
+bun run build
+bun run check:i18n
+```
+
+`check:i18n` fails if English copy appears on the built Indonesian page.
 
 ## Theming
 
@@ -137,7 +173,8 @@ bun run audit:theme
 ```
 
 The audit drives Edge headless (set `BROWSER_PATH` for another Chromium
-browser) through both themes at 1440, 1024 and 390px wide. It checks the
+browser) through both themes at 1440, 1024 and 390px wide, on `/` and `/id`,
+plus the 404 page in both languages. It checks the
 contrast of every visible text element and tech mark, exercises the toggle,
 and writes a screenshot of every section to `.theme-audit/`. Text drawn over a
 canvas or image, such as the hero, cannot be judged from the DOM, so it is

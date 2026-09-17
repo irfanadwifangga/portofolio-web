@@ -1,30 +1,28 @@
 "use client";
 
+import * as React from "react";
 import StaggeredMenu, {
   type StaggeredMenuItem,
   type StaggeredMenuSocialItem
 } from "@/components/staggered-menu";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
+import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/locales";
+import { SECTIONS } from "@/lib/sections";
 import { useThemeColors } from "@/lib/use-theme";
 import Image from "next/image";
 
-const MENU_ITEMS: StaggeredMenuItem[] = [
-  { label: "Home", ariaLabel: "Back to the top", link: "#top" },
-  {
-    label: "Building",
-    ariaLabel: "What I am currently building",
-    link: "#building"
-  },
-  {
-    label: "Deep-dives",
-    ariaLabel: "Engineering deep-dives",
-    link: "#deep-dives"
-  },
-  { label: "Side project", ariaLabel: "Side project", link: "#side-project" },
-  { label: "Stack", ariaLabel: "Tech stack", link: "#stack" },
-  { label: "Experience", ariaLabel: "Work experience", link: "#experience" },
-  { label: "Contact", ariaLabel: "Get in touch", link: "#contact" }
-];
+/** Every string the header needs, resolved to one language by the server. */
+export interface NavCopy {
+  sections: Dictionary["sections"];
+  menu: Dictionary["menu"];
+  theme: Dictionary["theme"];
+  language: Dictionary["language"];
+  /** Where the language toggle leads: the other language's home. */
+  languageTarget: { locale: Locale; href: string };
+  logoAlt: string;
+}
 
 const SOCIAL_ITEMS: StaggeredMenuSocialItem[] = [
   { label: "GitHub", link: "https://github.com/irfanadwifangga" },
@@ -41,7 +39,8 @@ const PRELAYER_COLORS = ["var(--surface-2)", "var(--border)"];
 const TOGGLE_TOKENS = ["muted", "foreground"] as const;
 
 /**
- * Site header: the wordmark, the theme toggle and a single menu toggle.
+ * Site header: the wordmark, the language and theme toggles, and a single menu
+ * toggle.
  *
  * Two layers: a plain fixed strip that supplies the blurred bar (so it spans
  * the full viewport width, which the menu's own max-w-6xl header row does
@@ -49,8 +48,17 @@ const TOGGLE_TOKENS = ["muted", "foreground"] as const;
  * panel. Panel links are ordinary in-page anchors, so the global Lenis click
  * interceptor scrolls them with the shared header offset.
  */
-export function Nav() {
+export function Nav({ copy }: { copy: NavCopy }) {
   const toggle = useThemeColors(TOGGLE_TOKENS);
+  const items = React.useMemo<StaggeredMenuItem[]>(
+    () =>
+      SECTIONS.map((section) => ({
+        label: copy.sections[section.key].label,
+        ariaLabel: copy.sections[section.key].aria,
+        link: section.hash
+      })),
+    [copy.sections]
+  );
 
   return (
     <>
@@ -59,7 +67,8 @@ export function Nav() {
       <StaggeredMenu
         isFixed
         position="right"
-        items={MENU_ITEMS}
+        labels={copy.menu}
+        items={items}
         socialItems={SOCIAL_ITEMS}
         displaySocials
         displayItemNumbering
@@ -71,13 +80,23 @@ export function Nav() {
         openMenuButtonColor={toggle?.foreground ?? "var(--foreground)"}
         changeMenuColorOnOpen
         closeOnClickAway
-        headerActions={<ThemeToggle />}
+        headerActions={
+          <div className="flex items-center gap-5">
+            <LanguageToggle
+              targetLocale={copy.languageTarget.locale}
+              href={copy.languageTarget.href}
+              label={copy.language.label}
+              switchLabel={copy.language.switchLabel}
+            />
+            <ThemeToggle labels={copy.theme} />
+          </div>
+        }
         logo={
           <a
             href="#top"
             className="-m-2 rounded-sm p-2 font-mono text-sm font-medium tracking-tight text-foreground focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none">
             <div className="flex items-center gap-3 hover:text-accent transition-colors">
-              <Image src="/icon-512.png" alt="Logo" width={24} height={24} />
+              <Image src="/icon-512.png" alt={copy.logoAlt} width={24} height={24} />
               <p>
                 irfana<span className="text-accent">.</span>
               </p>

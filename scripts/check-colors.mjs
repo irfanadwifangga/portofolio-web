@@ -11,7 +11,7 @@ export const ALLOWLIST = new Set([
   // the tokens themselves
   "app/globals.css",
   // rendered outside the page theme
-  "app/opengraph-image.tsx",
+  "lib/og.tsx",
   "app/actions/send-email.ts",
   // the editor's window-control dots keep their macOS colours in both themes
   "components/code-editor.tsx",

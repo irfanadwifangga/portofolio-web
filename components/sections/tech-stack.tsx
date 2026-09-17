@@ -2,6 +2,8 @@ import { SectionEntrance } from "@/components/section-entrance";
 import { Reveal } from "@/components/reveal";
 import { TechOrbit } from "@/components/tech-orbit";
 import { OrbitMark, GridMark } from "@/components/orbit-mark";
+import { getDictionary } from "@/lib/i18n";
+import { fill, type Locale } from "@/lib/i18n/locales";
 import { techGroups, learningStack } from "@/lib/tech-stack";
 
 const all = [...techGroups.flatMap((g) => g.items), ...learningStack];
@@ -18,10 +20,12 @@ const innerItems = all.filter((_, i) => i % 2 === 0);
  * down as finished nodes — importing @thesvg/react across that boundary put
  * 323 KB of unused icon variants into the first-load bundle.
  */
-export function TechStack() {
+export function TechStack({ locale }: { locale: Locale }) {
+  const t = getDictionary(locale).stack;
+
   return (
     <section id="stack" className="border-t border-border">
-      <SectionEntrance index="04" title="Tech stack" />
+      <SectionEntrance index="04" title={t.title} />
 
       <div className="mx-auto max-w-6xl px-6 pb-24">
         {/* OrbitImages marks its container aria-hidden, so on its own the orbit
@@ -30,27 +34,29 @@ export function TechStack() {
             content; the orbit is the presentation layer over it. */}
         <ul className="sr-only">
           {techGroups.map((group) => (
-            <li key={group.category}>
-              {group.category}: {group.items.map((i) => i.name).join(", ")}
+            <li key={group.category.en}>
+              {group.category[locale]}: {group.items.map((i) => i.name).join(", ")}
             </li>
           ))}
           {learningStack.length > 0 ? (
-            <li>Currently learning: {learningStack.map((i) => i.name).join(", ")}</li>
+            <li>
+              {t.currentlyLearning}: {learningStack.map((i) => i.name).join(", ")}
+            </li>
           ) : null}
         </ul>
 
         <Reveal delay={0.05}>
           <TechOrbit
-            outer={outerItems.map((t) => (
-              <OrbitMark key={t.name} name={t.name} Icon={t.Icon} />
+            outer={outerItems.map((item) => (
+              <OrbitMark key={item.name} name={item.name} Icon={item.Icon} />
             ))}
-            inner={innerItems.map((t) => (
-              <OrbitMark key={t.name} name={t.name} Icon={t.Icon} />
+            inner={innerItems.map((item) => (
+              <OrbitMark key={item.name} name={item.name} Icon={item.Icon} />
             ))}
-            grid={all.map((t) => (
-              <GridMark key={t.name} name={t.name} Icon={t.Icon} />
+            grid={all.map((item) => (
+              <GridMark key={item.name} name={item.name} Icon={item.Icon} />
             ))}
-            caption={`${all.length} tools · ${techGroups.length} categories`}
+            caption={fill(t.caption, { tools: all.length, categories: techGroups.length })}
           />
         </Reveal>
 
@@ -59,9 +65,9 @@ export function TechStack() {
         <Reveal delay={0.1}>
           <dl className="mt-10 grid gap-x-10 gap-y-7 border-t border-border pt-8 sm:grid-cols-2 lg:grid-cols-3">
             {techGroups.map((group) => (
-              <div key={group.category} className="flex flex-col gap-2">
+              <div key={group.category.en} className="flex flex-col gap-2">
                 <dt className="font-mono text-2xs tracking-[0.14em] text-muted-2 uppercase">
-                  {group.category}
+                  {group.category[locale]}
                 </dt>
                 <dd className="font-mono text-sm leading-relaxed text-foreground/85">
                   {group.items.map((i) => i.name).join(" · ")}
@@ -71,7 +77,7 @@ export function TechStack() {
             {learningStack.length > 0 ? (
               <div className="flex flex-col gap-2">
                 <dt className="font-mono text-2xs tracking-[0.14em] text-amber-400/80 uppercase">
-                  Learning
+                  {t.learning}
                 </dt>
                 <dd className="font-mono text-sm leading-relaxed text-foreground/85">
                   {learningStack.map((i) => i.name).join(" · ")}

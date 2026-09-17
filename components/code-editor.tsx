@@ -14,9 +14,11 @@ export interface CodeEditorProps {
    * The nodes are static; only the wrapper's opacity tracks the active tab.
    */
   langIcons: Record<SnippetLang, ReactNode>;
+  /** Accessible name of the language tab list. */
+  tabsLabel: string;
 }
 
-export function CodeEditor({ langIcons }: CodeEditorProps) {
+export function CodeEditor({ langIcons, tabsLabel }: CodeEditorProps) {
   const [active, setActive] = React.useState(codeSnippets[0].id);
   const snippet = codeSnippets.find((s) => s.id === active)!;
   const lines = React.useMemo(() => snippet.code.split("\n"), [snippet.code]);
@@ -80,7 +82,7 @@ export function CodeEditor({ langIcons }: CodeEditorProps) {
       {/* tabs */}
       <div
         role="tablist"
-        aria-label="Profile in each language"
+        aria-label={tabsLabel}
         className="scrollbar-thin flex gap-0.5 overflow-x-auto border-b border-editor-border bg-editor-chrome px-2 pt-1">
         {codeSnippets.map((s) => {
           const isActive = s.id === active;

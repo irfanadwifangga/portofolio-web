@@ -276,3 +276,10 @@ html {
 .caret-blink {
   animation: blink-caret 1s step-end infinite;
 }
+
+/* app/global-not-found.tsx ships both languages. Its inline script sets
+   lang="id" on paths under /id before first paint; this hides the other one. */
+html:not([lang="id"]) [data-locale="id"],
+html[lang="id"] [data-locale="en"] {
+  display: none !important;
+}

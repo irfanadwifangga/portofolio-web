@@ -33,6 +33,8 @@ import {
   VercelMark
 } from "@/lib/tech-icons";
 
+import type { Localized } from "@/lib/i18n/locales";
+
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 export interface TechItem {
@@ -41,13 +43,13 @@ export interface TechItem {
 }
 
 export interface TechGroup {
-  category: string;
+  category: Localized<string>;
   items: TechItem[];
 }
 
 export const techGroups: TechGroup[] = [
   {
-    category: "Languages",
+    category: { en: "Languages", id: "Bahasa pemrograman" },
     items: [
       { name: "JavaScript", Icon: Javascript },
       { name: "TypeScript", Icon: Typescript },
@@ -58,7 +60,7 @@ export const techGroups: TechGroup[] = [
     ]
   },
   {
-    category: "Frontend",
+    category: { en: "Frontend", id: "Frontend" },
     items: [
       { name: "Next.js", Icon: Nextjs },
       { name: "React", Icon: ReactMark },
@@ -67,7 +69,7 @@ export const techGroups: TechGroup[] = [
     ]
   },
   {
-    category: "Backend",
+    category: { en: "Backend", id: "Backend" },
     items: [
       { name: "Node.js", Icon: Nodejs },
       { name: "Django REST", Icon: Django },
@@ -79,7 +81,7 @@ export const techGroups: TechGroup[] = [
     ]
   },
   {
-    category: "Database",
+    category: { en: "Database", id: "Basis data" },
     items: [
       { name: "PostgreSQL", Icon: Postgresql },
       { name: "Supabase", Icon: Supabase },
@@ -88,7 +90,7 @@ export const techGroups: TechGroup[] = [
     ]
   },
   {
-    category: "Tools",
+    category: { en: "Tools", id: "Tools" },
     items: [
       { name: "Docker", Icon: Docker },
       { name: "Git", Icon: Git },
