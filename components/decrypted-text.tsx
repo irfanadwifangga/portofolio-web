@@ -30,6 +30,13 @@
 //      revealing a character swaps visibility instead of text, which needs no
 //      layout; and the glyphs are re-rolled at most 30 times a second.
 //   7. Only the modes this site uses: reveal on first view, from the start.
+//   8. The reveal never delays the largest contentful paint. It waits for a
+//      painted frame before replacing the text with per-character spans —
+//      otherwise, where hydration beats the first paint, the browser never sees
+//      the paragraph as one block of text and only counts it once the scramble
+//      settles (PageSpeed measured a 2,560 ms render delay on the hero lead).
+//      A long text also reveals several characters per step so that no reveal
+//      runs longer than MAX_REVEAL_MS.
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -56,6 +63,9 @@ const WHITESPACE = /\s/;
 
 /** Fastest re-roll of the scrambled glyphs, in milliseconds (30 per second). */
 const MIN_REROLL_MS = 33;
+
+/** Deviation 8: the longest a reveal may run, however long the text is. */
+const MAX_REVEAL_MS = 800;
 
 export default function DecryptedText({
   text,
@@ -89,16 +99,23 @@ export default function DecryptedText({
   useEffect(() => {
     const node = containerRef.current;
     if (!node || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
-        setScrambling(true);
+        // Deviation 8: two frames guarantee the settled text has been painted.
+        frame = requestAnimationFrame(() => {
+          frame = requestAnimationFrame(() => setScrambling(true));
+        });
       },
       { threshold: 0.1 }
     );
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, [text]);
 
   // Drive the reveal once the per-character spans are in the DOM.
@@ -107,6 +124,8 @@ export default function DecryptedText({
     const glyphs = glyphRefs.current;
     const holders = holderRefs.current;
     const reroll = Math.max(speed, MIN_REROLL_MS);
+    // Deviation 8: `speed` per character, unless that would overrun the cap.
+    const step = Math.min(speed, MAX_REVEAL_MS / text.length);
     const random = () => pool[Math.floor(Math.random() * pool.length)] ?? "";
     let revealed = 0;
     let lastScramble = -Infinity;
@@ -122,7 +141,7 @@ export default function DecryptedText({
     const tick = (now: number) => {
       const stalled = lastFrame > 0 && now - lastFrame > STALL_MS;
       lastFrame = now;
-      const target = Math.min(text.length, Math.floor((now - start) / speed));
+      const target = Math.min(text.length, Math.floor((now - start) / step));
       if (stalled || target >= text.length) return finish();
 
       // Revealing shows the real character and hides its stand-in: a style
