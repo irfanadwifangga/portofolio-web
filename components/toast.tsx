@@ -126,7 +126,10 @@ export function ToastProvider({
 
       {/* Toast container — bottom-right, stacks upward */}
       <div
-        aria-live="polite"
+        // A named live region needs a role that allows a name; on a plain div
+        // aria-label is ignored, which Lighthouse flagged as a prohibited
+        // attribute. "status" is itself a polite live region.
+        role="status"
         aria-label={labels.region}
         className="fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-3 pointer-events-none"
       >

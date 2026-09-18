@@ -576,7 +576,10 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           id="staggered-menu-panel"
           ref={panelRef}
           className="staggered-menu-panel scrollbar-thin pointer-events-auto absolute top-0 right-0 z-10 flex h-full flex-col overflow-y-auto"
-          aria-hidden={!open}>
+          // A closed panel keeps its links in the DOM for the open animation.
+          // inert takes them out of the tab order and the accessibility tree;
+          // aria-hidden alone left them focusable, which Lighthouse flagged.
+          inert={!open}>
           <div className="sm-panel-inner flex flex-1 flex-col gap-5">
             <ul
               className="sm-panel-list m-0 flex list-none flex-col gap-2 p-0"

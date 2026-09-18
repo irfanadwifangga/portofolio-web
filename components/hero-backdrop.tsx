@@ -53,7 +53,6 @@ export function HeroBackdrop() {
         glitchAmount={0.7}
         flickerAmount={0.6}
         noiseAmp={0.9}
-        chromaticAberration={0}
         curvature={0.12}
         tint={colors.accent}
         mouseReact={false}

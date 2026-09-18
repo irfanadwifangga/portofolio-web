@@ -29,6 +29,15 @@
 //      on a theme change.
 //   6. No crash without WebGL. OGL throws when it cannot get a context, which
 //      took the page down with it; the backdrop is simply left out instead.
+//   7. A shader that links in a moment. Upstream drew each glyph nine extra
+//      times for a 0.002-wide glow and kept a chromatic-aberration branch that
+//      draws the whole picture twice more, so the fragment function was inlined
+//      twelve times and the program took 1,640 ms to link — a freeze the page
+//      pays whenever the browser cannot link in parallel, which is what
+//      PageSpeed's own machines do (2,420 ms total blocking time on desktop).
+//      The glow is invisible behind the hero's 65% scrim, and the site always
+//      passed chromaticAberration 0, so both are gone: the program now links in
+//      42-59 ms and a software-rendered frame draws in 44 ms instead of 353 ms.
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 
@@ -110,7 +119,6 @@ export interface FaultyTerminalProps extends React.HTMLAttributes<HTMLDivElement
   glitchAmount?: number;
   flickerAmount?: number;
   noiseAmp?: number;
-  chromaticAberration?: number;
   dither?: number | boolean;
   curvature?: number;
   tint?: string;
@@ -146,7 +154,6 @@ uniform float uScanlineIntensity;
 uniform float uGlitchAmount;
 uniform float uFlickerAmount;
 uniform float uNoiseAmp;
-uniform float uChromaticAberration;
 uniform float uDither;
 uniform float uCurvature;
 uniform vec3  uTint;
@@ -280,14 +287,11 @@ vec3 getColor(vec2 p){
       p.x += extra;
     }
 
+    // Deviation 7: one sample. Upstream summed a 3x3 neighbourhood here, which
+    // at this offset is the same glyph nine times over, and multiplied it by
+    // 0.1; the single sample stands in for that sum.
     float middle = digit(p);
-    
-    const float off = 0.002;
-    float sum = digit(p + vec2(-off, -off)) + digit(p + vec2(0.0, -off)) + digit(p + vec2(off, -off)) +
-                digit(p + vec2(-off, 0.0)) + digit(p + vec2(0.0, 0.0)) + digit(p + vec2(off, 0.0)) +
-                digit(p + vec2(-off, off)) + digit(p + vec2(0.0, off)) + digit(p + vec2(off, off));
-    
-    vec3 baseColor = vec3(0.9) * middle + sum * 0.1 * vec3(1.0) * bar;
+    vec3 baseColor = vec3(0.9) * middle + middle * 0.9 * vec3(1.0) * bar;
     return baseColor;
 }
 
@@ -308,12 +312,6 @@ void main() {
     
     vec2 p = uv * uScale;
     vec3 col = getColor(p);
-
-    if(uChromaticAberration != 0.0){
-      vec2 ca = vec2(uChromaticAberration) / iResolution.xy;
-      col.r = getColor(p + ca).r;
-      col.b = getColor(p - ca).b;
-    }
 
     // Alpha comes from the glyph intensity before tinting, so the tint sets
     // the hue alone and the page shows through between glyphs.
@@ -349,7 +347,6 @@ export default function FaultyTerminal({
   glitchAmount = 1,
   flickerAmount = 1,
   noiseAmp = 1,
-  chromaticAberration = 0,
   dither = 0,
   curvature = 0.2,
   tint = "#ffffff",
@@ -450,7 +447,6 @@ export default function FaultyTerminal({
           uGlitchAmount: { value: glitchAmount },
           uFlickerAmount: { value: flickerAmount },
           uNoiseAmp: { value: noiseAmp },
-          uChromaticAberration: { value: chromaticAberration },
           uDither: { value: ditherValue },
           uCurvature: { value: curvature },
           uTint: { value: new Color(tintRef.current[0], tintRef.current[1], tintRef.current[2]) },
@@ -606,7 +602,6 @@ export default function FaultyTerminal({
     glitchAmount,
     flickerAmount,
     noiseAmp,
-    chromaticAberration,
     ditherValue,
     curvature,
     mouseReact,
