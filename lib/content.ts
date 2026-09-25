@@ -293,7 +293,7 @@ export interface SideProject {
   /**
    * Counted from the repository, not estimated. Re-count when the project
    * moves on, or these quietly become claims that are no longer true.
-   * Last counted 2026-09-15.
+   * Last counted 2026-09-25.
    */
   facts: SideProjectFact[];
   stack: string[];
@@ -301,14 +301,14 @@ export interface SideProject {
 }
 
 export const sideProject: SideProject = {
-  name: "YT To MP3 Converter",
+  name: "YouTube to MP3 & MP4",
   image: "/project/yt-to-mp3.png",
   repo: "https://github.com/irfanadwifangga/yt-to-mp3",
   period: { start: "2026-09", end: "2026-09" },
-  tagline: { en: "Local desktop app · Go + React", id: "Aplikasi desktop lokal · Go + React" },
+  tagline: { en: "Local desktop app · Go + React · audio & video", id: "Aplikasi desktop lokal · Go + React · audio & video" },
   summary: {
-    en: "Paste a video link and get an MP3 with title, artist, cover art and album tags already filled in — entirely on your own machine, with no account and nothing uploaded. A Go backend keeps a persistent job queue in SQLite, drives yt-dlp and FFmpeg as child processes, and streams live progress to a React UI over Server-Sent Events. It builds into a single pure-Go binary and a Windows installer.",
-    id: "Tempel link video dan dapatkan MP3 dengan judul, artis, cover art, dan tag album yang sudah terisi — sepenuhnya di komputer sendiri, tanpa akun dan tanpa ada yang diunggah. Backend Go menyimpan antrean job yang persisten di SQLite, menjalankan yt-dlp dan FFmpeg sebagai child process, dan mengalirkan progres secara langsung ke UI React lewat Server-Sent Events. Hasil build-nya berupa satu binary Go murni dan installer Windows."
+    en: "Paste a YouTube link and get an MP3, M4A, Opus, FLAC, WAV — or an MP4, MKV, WebM video up to 4K — with title, artist, cover art and album tags already filled in, entirely on your own machine. A Go backend keeps a persistent job queue in SQLite, drives yt-dlp and FFmpeg as child processes, and streams live progress to a bilingual React UI over Server-Sent Events. One-click tool installation with SHA-256 verification, a settings dialog with a native OS folder picker, idle auto-shutdown, crash recovery, and a Windows installer — all from a single pure-Go binary.",
+    id: "Tempel link YouTube dan dapatkan MP3, M4A, Opus, FLAC, WAV — atau video MP4, MKV, WebM hingga 4K — dengan judul, artis, cover art, dan tag album yang sudah terisi, sepenuhnya di komputer sendiri. Backend Go menyimpan antrean job yang persisten di SQLite, menjalankan yt-dlp dan FFmpeg sebagai child process, dan mengalirkan progres secara langsung ke UI React dwibahasa lewat Server-Sent Events. Instalasi tool sekali klik dengan verifikasi SHA-256, dialog pengaturan dengan folder picker native OS, auto-shutdown saat idle, pemulihan crash, dan installer Windows — semua dari satu binary Go murni."
   },
   highlights: {
     en: [
@@ -323,16 +323,16 @@ export const sideProject: SideProject = {
     ]
   },
   facts: [
-    { value: "215", label: { en: "Go test functions", id: "fungsi tes Go" } },
+    { value: "280+", label: { en: "Go test functions", id: "fungsi tes Go" } },
     { value: "3", label: { en: "OSes tested in CI", id: "OS yang dites di CI" } },
     { value: "5", label: { en: "cross-compiled targets", id: "target cross-compile" } },
     { value: "0", label: { en: "cgo dependencies", id: "dependensi cgo" } }
   ],
-  stack: ["Go", "React", "TypeScript", "SQLite", "FFmpeg", "yt-dlp", "Vite", "GitHub Actions"],
+  stack: ["Go", "React", "TypeScript", "SQLite", "FFmpeg", "yt-dlp", "Vite", "Inno Setup", "GitHub Actions"],
   dives: [
     {
       title: { en: "Cancel that kills the whole process tree", id: "Cancel yang mematikan seluruh pohon proses" },
-      project: "yt-to-mp3",
+      project: "YouTube to MP3 & MP4",
       problem: {
         en: "yt-dlp spawns FFmpeg, and on Windows killing a process does not kill its children. A naive cancel leaves an orphaned FFmpeg still writing, and a temp file the OS refuses to delete because something still holds it open.",
         id: "yt-dlp menjalankan FFmpeg, dan di Windows mematikan sebuah proses tidak ikut mematikan proses anaknya. Cancel yang naif meninggalkan FFmpeg yatim yang masih menulis, dan file sementara yang tidak bisa dihapus OS karena masih dipakai."
@@ -353,7 +353,7 @@ export const sideProject: SideProject = {
     },
     {
       title: { en: "Live progress that survives a reconnect", id: "Progres langsung yang tetap utuh saat tersambung ulang" },
-      project: "yt-to-mp3",
+      project: "YouTube to MP3 & MP4",
       problem: {
         en: "The UI follows each job over Server-Sent Events. Reading stored history and then subscribing leaves a gap: any event fired between the two steps is lost for good, and a reconnecting tab can miss the one state change that mattered.",
         id: "UI mengikuti setiap job lewat Server-Sent Events. Membaca riwayat tersimpan lalu berlangganan meninggalkan celah: event yang terjadi di antara dua langkah itu hilang selamanya, dan tab yang tersambung ulang bisa melewatkan satu perubahan status yang paling penting."
@@ -374,7 +374,7 @@ export const sideProject: SideProject = {
     },
     {
       title: { en: "Retries that know when to give up", id: "Retry yang tahu kapan harus berhenti" },
-      project: "yt-to-mp3",
+      project: "YouTube to MP3 & MP4",
       problem: {
         en: "A download can fail because the network blinked, because the source rate-limited the machine, or because the video is private. Retrying all three the same way either gives up too early or hammers a source that has already said no.",
         id: "Unduhan bisa gagal karena jaringan sempat putus, karena sumbernya membatasi laju permintaan, atau karena videonya privat. Mengulang ketiganya dengan cara yang sama berarti menyerah terlalu cepat, atau terus membombardir sumber yang sudah menolak."
