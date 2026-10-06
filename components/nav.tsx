@@ -27,7 +27,7 @@ export interface NavCopy {
 const SOCIAL_ITEMS: StaggeredMenuSocialItem[] = [
   { label: "GitHub", link: "https://github.com/irfanadwifangga" },
   { label: "LinkedIn", link: "https://www.linkedin.com/in/irfanadwifangga" },
-  { label: "Email", link: "mailto:irvanadwifangga@gmail.com" }
+  { label: "Email", link: "mailto:contact@irfana.tech" }
 ];
 
 // Prelayers are painted through inline `background`, which accepts var().

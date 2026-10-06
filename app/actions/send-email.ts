@@ -41,10 +41,12 @@ function isRateLimited(ip: string): boolean {
 
 function createTransport() {
   return nodemailer.createTransport({
-    service: "gmail",
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 465),
+    secure: process.env.SMTP_PORT !== "587",
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
 }
@@ -69,8 +71,8 @@ export async function sendEmail(
   const t = getDictionary(lang).contact.server;
 
   /* --- env guard --- */
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.error("[send-email] Missing GMAIL_USER or GMAIL_APP_PASSWORD");
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error("[send-email] Missing SMTP_USER or SMTP_PASS");
     return { ok: false, message: t.notConfigured };
   }
 
@@ -88,9 +90,9 @@ export async function sendEmail(
   try {
     const transport = createTransport();
     await transport.sendMail({
-      from: `"${payload.name}" <${process.env.GMAIL_USER}>`,
+      from: `"${payload.name}" <${process.env.SMTP_USER}>`,
       replyTo: `"${payload.name}" <${payload.email}>`,
-      to: process.env.GMAIL_USER,
+      to: process.env.SMTP_USER,
       subject: `[Portfolio] ${payload.subject}`,
       text: [
         `From: ${payload.name} <${payload.email}>`,
@@ -102,7 +104,7 @@ export async function sendEmail(
       html: `
         <div style="font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 40px 0;">
           <!-- Branding -->
-          <p style="margin: 0 0 32px; font-family: monospace; font-size: 12px; color: #9ca3af; letter-spacing: 0.3px;">irfana.web.id · contact form</p>
+          <p style="margin: 0 0 32px; font-family: monospace; font-size: 12px; color: #9ca3af; letter-spacing: 0.3px;">irfana.tech · contact form</p>
 
           <!-- Meta -->
           <p style="margin: 0; font-size: 15px; color: #111;">

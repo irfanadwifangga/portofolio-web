@@ -1,4 +1,4 @@
-# irfana.web.id — portfolio
+# irfana.tech — portfolio
 
 Portfolio for Irfana Dwi Fangga, fullstack developer (backend-first). Single
 page, built with Next.js 16 (App Router, Turbopack), TypeScript, and Tailwind
@@ -40,16 +40,18 @@ Package manager is [Bun](https://bun.sh); `bun.lock` is the committed lockfile.
 bun install
 ```
 
-The contact form sends over Gmail SMTP, so create `.env.local`:
+The contact form sends over SMTP. Create `.env.local` with your provider's
+settings (example uses Titan Email):
 
 ```
-GMAIL_USER=you@gmail.com
-GMAIL_APP_PASSWORD=your-16-char-app-password
+SMTP_HOST=smtp.titan.email
+SMTP_PORT=465
+SMTP_USER=contact@irfana.tech
+SMTP_PASS=your-email-password
 ```
 
-`GMAIL_APP_PASSWORD` is a Google [App Password](https://myaccount.google.com/apppasswords),
-not the account password — the latter will not authenticate. Without these two
-the site still builds and runs; only the contact form fails.
+Without these variables the site still builds and runs; only the contact form
+fails.
 
 ```bash
 bun run dev

@@ -8,7 +8,7 @@
  * Translated text (title, description, tagline) lives in the dictionaries under
  * `meta`; only values that read the same in every language stay here.
  */
-export const SITE_URL = "https://irfana.web.id";
+export const SITE_URL = "https://irfana.tech";
 
 export const SITE_NAME = "Irfana Dwi Fangga";
 
