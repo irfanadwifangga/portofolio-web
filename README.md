@@ -41,13 +41,14 @@ bun install
 ```
 
 The contact form sends over SMTP. Create `.env.local` with your provider's
-settings (example uses Titan Email):
+settings (example uses Gmail with an App Password):
 
 ```
-SMTP_HOST=smtp.titan.email
+SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
-SMTP_USER=contact@irfana.tech
-SMTP_PASS=your-email-password
+SMTP_USER=irvanadwifangga@gmail.com 
+SMTP_PASS=your-gmail-app-password
+CONTACT_RECIPIENT=irvanadwifangga@gmail.com
 ```
 
 Without these variables the site still builds and runs; only the contact form

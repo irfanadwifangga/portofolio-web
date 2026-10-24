@@ -92,7 +92,7 @@ export async function sendEmail(
     await transport.sendMail({
       from: `"${payload.name}" <${process.env.SMTP_USER}>`,
       replyTo: `"${payload.name}" <${payload.email}>`,
-      to: process.env.SMTP_USER,
+      to: process.env.CONTACT_RECIPIENT || process.env.SMTP_USER,
       subject: `[Portfolio] ${payload.subject}`,
       text: [
         `From: ${payload.name} <${payload.email}>`,
