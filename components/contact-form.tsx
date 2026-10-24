@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Script from "next/script";
 import { sendEmail } from "@/app/actions/send-email";
 import { useToast } from "@/components/toast";
 import type { Dictionary } from "@/lib/i18n";
@@ -15,6 +16,21 @@ const MAX_BODY = 2000;
 const INITIAL = { name: "", email: "", subject: "", body: "" };
 
 type Field = keyof typeof INITIAL;
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "";
+
+/* -------------------------------------------------------------------------- */
+/*  reCAPTCHA v3 global type                                                  */
+/* -------------------------------------------------------------------------- */
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, opts: { action: string }) => Promise<string>;
+    };
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Icons                                                                     */
@@ -121,6 +137,8 @@ export function ContactForm({
   );
   const [sending, setSending] = React.useState(false);
   const [sent, setSent] = React.useState(false);
+  const [honeypot, setHoneypot] = React.useState("");
+  const [scriptError, setScriptError] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   /* ---- helpers ---- */
@@ -155,7 +173,31 @@ export function ContactForm({
     if (sending || !validateAll()) return;
     setSending(true);
     try {
-      const result = await sendEmail(locale, form);
+      /* --- reCAPTCHA v3 token --- */
+      let token: string | undefined;
+      if (RECAPTCHA_SITE_KEY) {
+        if (scriptError || !window.grecaptcha) {
+          toast(copy.captchaError, "error");
+          setSending(false);
+          return;
+        }
+
+        try {
+          token = await new Promise<string>((resolve, reject) => {
+            window.grecaptcha!.ready(() => {
+              window.grecaptcha!
+                .execute(RECAPTCHA_SITE_KEY, { action: "contact" })
+                .then(resolve, reject);
+            });
+          });
+        } catch {
+          toast(copy.captchaError, "error");
+          setSending(false);
+          return;
+        }
+      }
+
+      const result = await sendEmail(locale, form, token, honeypot);
       if (result.ok) {
         toast(result.message, "success");
         setForm(INITIAL);
@@ -180,13 +222,27 @@ export function ContactForm({
   };
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      onKeyDown={handleKeyDown}
-      className="mx-auto w-full max-w-xl"
-      noValidate
-    >
+    <>
+      {/* reCAPTCHA v3 — invisible, no badge (attribution text below instead) */}
+      {RECAPTCHA_SITE_KEY && (
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
+          strategy="lazyOnload"
+          onError={() => setScriptError(true)}
+        />
+      )}
+      {/* Hide the default reCAPTCHA badge — Google allows this when attribution text is shown */}
+      {RECAPTCHA_SITE_KEY && (
+        <style>{`.grecaptcha-badge { visibility: hidden !important; }`}</style>
+      )}
+
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        onKeyDown={handleKeyDown}
+        className="mx-auto w-full max-w-xl"
+        noValidate
+      >
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl shadow-shadow/25 transition-shadow duration-300 hover:shadow-shadow/40">
         {/* ---- Title bar ---- */}
         <div className="flex items-center gap-2.5 border-b border-border bg-surface-2 px-5 py-3">
@@ -194,6 +250,20 @@ export function ContactForm({
           <span className="font-mono text-sm text-foreground">
             {copy.title}
           </span>
+        </div>
+
+        {/* Honeypot — hidden from humans, catches simple bots */}
+        <div aria-hidden="true" className="absolute left-[-9999px] h-0 overflow-hidden">
+          <label htmlFor="contact-website">Website</label>
+          <input
+            id="contact-website"
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
         </div>
 
         {/* ---- Fields ---- */}
@@ -280,7 +350,32 @@ export function ContactForm({
         </div>
       </div>
     </form>
-  );
+
+    {RECAPTCHA_SITE_KEY ? (
+      <p className="mt-4 text-center font-mono text-[11px] leading-relaxed text-muted-2">
+        {copy.recaptchaLead}{" "}
+        <a
+          href="https://policies.google.com/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          {copy.recaptchaPrivacy}
+        </a>{" "}
+        {copy.recaptchaAnd}{" "}
+        <a
+          href="https://policies.google.com/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          {copy.recaptchaTerms}
+        </a>{" "}
+        {copy.recaptchaTrail}
+      </p>
+    ) : null}
+  </>
+);
 }
 
 /* -------------------------------------------------------------------------- */

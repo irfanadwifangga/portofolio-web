@@ -112,7 +112,13 @@ export const en = {
       sent: "Sent!",
       send: "Send Message",
       shortcut: "Ctrl + Enter",
-      unexpected: "Something went wrong. Please try again."
+      unexpected: "Something went wrong. Please try again.",
+      captchaError: "Spam protection could not load. Please refresh and try again.",
+      recaptchaLead: "This site is protected by reCAPTCHA and the Google",
+      recaptchaPrivacy: "Privacy Policy",
+      recaptchaAnd: "and",
+      recaptchaTerms: "Terms of Service",
+      recaptchaTrail: "apply."
     },
     server: {
       nameRequired: "Name is required.",
@@ -124,6 +130,7 @@ export const en = {
       bodyRequired: "Message is required.",
       bodyTooLong: "Message is too long (max 5 000 chars).",
       notConfigured: "Mail service is not configured.",
+      captchaFailed: "Spam check failed. Please refresh the page and try again.",
       rateLimited: "You've sent a message recently. Please wait a minute.",
       sent: "Message sent! I'll get back to you soon.",
       failed: "Failed to send message. Please try again later."

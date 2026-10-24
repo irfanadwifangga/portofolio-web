@@ -107,7 +107,13 @@ export const id: Dictionary = {
       sent: "Terkirim!",
       send: "Kirim Pesan",
       shortcut: "Ctrl + Enter",
-      unexpected: "Terjadi kesalahan. Silakan coba lagi."
+      unexpected: "Terjadi kesalahan. Silakan coba lagi.",
+      captchaError: "Perlindungan spam gagal dimuat. Muat ulang halaman dan coba lagi.",
+      recaptchaLead: "Situs ini dilindungi oleh reCAPTCHA dan",
+      recaptchaPrivacy: "Kebijakan Privasi",
+      recaptchaAnd: "serta",
+      recaptchaTerms: "Ketentuan Layanan",
+      recaptchaTrail: "Google berlaku."
     },
     server: {
       nameRequired: "Nama wajib diisi.",
@@ -119,6 +125,7 @@ export const id: Dictionary = {
       bodyRequired: "Pesan wajib diisi.",
       bodyTooLong: "Pesan terlalu panjang (maks. 5.000 karakter).",
       notConfigured: "Layanan email belum dikonfigurasi.",
+      captchaFailed: "Pemeriksaan spam gagal. Muat ulang halaman dan coba lagi.",
       rateLimited: "Pesan baru saja terkirim. Tunggu sekitar satu menit sebelum mengirim lagi.",
       sent: "Pesan terkirim! Saya akan segera membalas.",
       failed: "Gagal mengirim pesan. Silakan coba lagi nanti."

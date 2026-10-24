@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import { validateContact, type ContactPayload } from "@/lib/contact-validation";
 import { getDictionary } from "@/lib/i18n";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/locales";
+import { SITE_URL } from "@/lib/site";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -12,6 +13,67 @@ import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/locales";
 interface SendEmailResult {
   ok: boolean;
   message: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  reCAPTCHA v3 verification                                                 */
+/* -------------------------------------------------------------------------- */
+
+const RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
+const RECAPTCHA_SCORE_THRESHOLD = 0.5;
+const ALLOWED_HOSTS = new Set(
+  [new URL(SITE_URL).host, `www.${new URL(SITE_URL).host}`]
+);
+
+interface RecaptchaResponse {
+  success: boolean;
+  score?: number;
+  action?: string;
+  hostname?: string;
+  "error-codes"?: string[];
+}
+
+async function verifyRecaptcha(token: string): Promise<{ ok: boolean; reason?: string }> {
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secret) {
+    console.error("[recaptcha] Missing RECAPTCHA_SECRET_KEY");
+    return { ok: false, reason: "not-configured" };
+  }
+
+  try {
+    const res = await fetch(RECAPTCHA_VERIFY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response: token }),
+    });
+    const data: RecaptchaResponse = await res.json();
+
+    if (!data.success) {
+      console.warn("[recaptcha] Verification failed:", data["error-codes"]);
+      return { ok: false, reason: "verification-failed" };
+    }
+    if (data.action !== "contact") {
+      console.warn("[recaptcha] Unexpected action:", data.action);
+      return { ok: false, reason: "wrong-action" };
+    }
+    if (data.score != null && data.score < RECAPTCHA_SCORE_THRESHOLD) {
+      console.warn("[recaptcha] Low score:", data.score);
+      return { ok: false, reason: "low-score" };
+    }
+    const isDevLocal =
+      process.env.NODE_ENV === "development" &&
+      (data.hostname === "localhost" || data.hostname === "127.0.0.1");
+
+    if (data.hostname && !ALLOWED_HOSTS.has(data.hostname) && !isDevLocal) {
+      console.warn("[recaptcha] Unexpected hostname:", data.hostname);
+      return { ok: false, reason: "wrong-hostname" };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("[recaptcha] Network error:", err);
+    return { ok: false, reason: "network-error" };
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -65,15 +127,31 @@ function createTransport() {
  */
 export async function sendEmail(
   locale: string,
-  payload: ContactPayload
+  payload: ContactPayload,
+  recaptchaToken?: string,
+  honeypot?: string
 ): Promise<SendEmailResult> {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const t = getDictionary(lang).contact.server;
+
+  /* --- honeypot — silent rejection so bots think they succeeded --- */
+  if (honeypot) {
+    return { ok: true, message: t.sent };
+  }
 
   /* --- env guard --- */
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.error("[send-email] Missing SMTP_USER or SMTP_PASS");
     return { ok: false, message: t.notConfigured };
+  }
+
+  /* --- reCAPTCHA --- */
+  if (!recaptchaToken) {
+    return { ok: false, message: t.captchaFailed };
+  }
+  const captcha = await verifyRecaptcha(recaptchaToken);
+  if (!captcha.ok) {
+    return { ok: false, message: t.captchaFailed };
   }
 
   /* --- validation --- */
